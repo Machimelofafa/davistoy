@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <!-- Dark‑theme CSS -->
+  <?!= inc('styles'); ?>
 
+  <!-- Google Charts loader (kept for possible sparklines) -->
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+  <h1>Stack‑up R<sub>th</sub> Calculator V2</h1>
+
+  <!-- heat‑source + cooler forms -->
+  <?!= inc('controls'); ?>
+
+  <!-- material table -->
+  <section class="card">
+    <h2>Material stack‑up</h2>
+    <table id="layerTbl">
+      <thead>
+        <tr>
+          <th>#</th><th>Material</th><th>t&nbsp;[µm]</th>
+          <th>k<sub>x</sub>[W/(m.K)]</th><th>k<sub>y</sub>[W/(m.K)]</th><th>k<sub>z</sub>[W/(m.K)]</th><th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button id="btnAdd">➕ Add layer</button>
+  </section>
+
+  <button id="btnCalc" class="primary" style="margin:18px 0">Calculate</button>
+
+  <!-- results (2‑D cone + summary) -->
+  <section class="card result" id="resultCard">
+    <h2>Results</h2>
+    <p id="outDie">Rth / die = – °C/W</p>
+    <p id="outTotal" class="small">Total stack (all dies) = – °C/W</p>
+
+    <div class="flexBox">
+      <div id="cone" class="coneBox"></div><!-- 2‑D cone -->
+
+      <div class="sumBox flexInner"><!-- summary table + curve -->
+        <table id="sumTbl">
+          <thead><tr><th>Layer</th><th>Rth (total stack) [°C/W]</th><th>Cumulative Rth (total stack) [°C/W]</th><th>Length (Y) at bottom [mm]</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <svg id="cumSvg"></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- front‑end JS -->
+  <?!= inc('ui'); ?>
+</body>
+</html>
