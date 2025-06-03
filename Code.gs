@@ -15,6 +15,28 @@
  */
 function solve(p) {
 
+  // Validate payload structure
+  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth'];
+  numericFields.forEach(function(field) {
+    if (typeof p[field] !== 'number' || isNaN(p[field])) {
+      throw new Error('Invalid payload: "' + field + '" must be a number');
+    }
+  });
+
+  if (!Array.isArray(p.layers)) {
+    throw new Error('Invalid payload: "layers" must be an array');
+  }
+  p.layers.forEach(function(L, idx) {
+    if (typeof L !== 'object' || L === null) {
+      throw new Error('Invalid layer at index ' + idx + ': must be an object');
+    }
+    ['t', 'kx', 'ky', 'kz'].forEach(function(prop) {
+      if (typeof L[prop] !== 'number' || isNaN(L[prop])) {
+        throw new Error('Invalid layer at index ' + idx + ': "' + prop + '" must be a number');
+      }
+    });
+  });
+
   /* ---------- initial footprint (m) ----------------------------- */
   let len = p.srcLen / 1000;   // depth  (Y)  — mm → m
   let wid = p.srcWid / 1000;   // width  (X)
