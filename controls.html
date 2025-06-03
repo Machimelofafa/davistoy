@@ -1,0 +1,41 @@
+<!-- controls.html  (drop-in fragment) -->
+<section class="card inline">
+  <h2>Heat source (die)</h2>
+
+  <label>Length&nbsp;[mm]
+    <input id="srcLen" type="number" step="0.1" value="9">
+  </label>
+
+  <label>Width&nbsp;[mm]
+    <input id="srcWid" type="number" step="0.1" value="9">
+  </label>
+
+  <label>#&nbsp;of&nbsp;dies
+    <input id="dies" type="number" min="1" value="1">
+  </label>
+</section>
+
+<section class="card inline">
+  <h2>Cooler / base</h2>
+
+  <label>
+    Mode&nbsp;
+    <select id="coolSel">
+      <option value="none">None&nbsp;(only&nbsp;stack&nbsp;conduction)</option>
+      <option value="direct">Direct&nbsp;Rth&nbsp;value</option>
+      <option value="conv" selected>Calculated&nbsp;convection&nbsp;Rth</option>
+    </select>
+  </label>
+
+  <!-- shown only when “Direct Rth value” is selected -->
+  <label id="directBox" class="hide">
+    Rth&nbsp;[°C/W]
+    <input id="coolRth" type="number" step="0.01" value="0.30">
+  </label>
+
+  <!-- shown only when “Calculated convection Rth” is selected -->
+  <label id="convBox">
+    h&nbsp;[W/m²K]
+    <input id="hConv" type="number" value="38500">
+  </label>
+</section>
