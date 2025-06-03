@@ -37,8 +37,8 @@ function solve(p) {
     let slice_iter_len_iso = len; //
     let slice_iter_wid_iso = wid; //
     
-    let slice_iter_widX_aniso = widthsX.at(-1); //
-    let slice_iter_widY_aniso = widthsY.at(-1); //
+    let slice_iter_widX_aniso = widthsX[widthsX.length - 1]; //
+    let slice_iter_widY_aniso = widthsY[widthsY.length - 1]; //
 
     if (layer_thickness_in_microns > 0) { //
       for (let s = 0; s < layer_thickness_in_microns; s++) { //
@@ -87,7 +87,7 @@ function solve(p) {
     }
 
     rEach.push(current_layer_total_R); //
-    const lastRCum = rCum.length > 0 ? rCum.at(-1) : 0; //
+    const lastRCum = rCum.length > 0 ? rCum[rCum.length - 1] : 0; //
     rCum.push(lastRCum + current_layer_total_R); //
 
     len = slice_iter_len_iso; //
@@ -114,7 +114,7 @@ function solve(p) {
   // If p.coolerMode is 'none', rCool remains 0 as initialized.
 
   /* ---------- per-die & total ----------------------------------- */
-  const rStack = rCum.length > 0 ? rCum.at(-1) : 0; //
+  const rStack = rCum.length > 0 ? rCum[rCum.length - 1] : 0; //
   const rDie = rStack + rCool; //
   
   let rTotal = Infinity; //
