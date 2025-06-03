@@ -1,1 +1,353 @@
+<script>
+/* ===== ui.html (front‑end) ===== */
 
+/* Google Charts loader (reserved for future sparklines) */
+google.charts.load('current'); //
+
+/* ======================= DOM handles ======================= */
+const $ = id => document.getElementById(id); //
+
+// Handles for elements in index.html
+const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
+const outDie = $('outDie'), outTot = $('outTotal'); //
+const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
+const resultCard = $('resultCard'); //
+
+// Handles for elements in controls.html
+const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
+const coolSel = $('coolSel'), directBox = $('directBox'), convBox = $('convBox'); //
+const coolRth = $('coolRth'), hConv = $('hConv'); //
+
+/* ======================= Row helpers ======================= */
+function addRow(p = {}) { //
+  const rNo = tbl.tBodies[0].rows.length + 1; //
+  const newRow = tbl.tBodies[0].insertRow(); //
+  newRow.innerHTML = //
+    `<td>${rNo}</td>
+     <td><input class="mat" value="${p.mat || ''}"></td>
+     <td><input type="number" value="${p.t || 100}"></td>
+     <td><input type="number" value="${p.kx || 200}"></td>
+     <td><input type="number" value="${p.ky || 200}"></td>
+     <td><input type="number" value="${p.kz || 200}"></td>
+     <td><button class="trash">🗑️</button></td>`;
+  newRow.querySelector('.trash').onclick = e => { //
+    e.target.closest('tr').remove(); //
+    renumber(); //
+  };
+}
+
+function renumber() { //
+  [...tbl.tBodies[0].rows].forEach((r, i) => (r.cells[0].textContent = i + 1)); //
+}
+
+/* ======================= Cooler mode toggle ======================= */
+function updateCoolerVisibility() { //
+  if (!coolSel) return; //
+  directBox.classList.toggle('hide', coolSel.value !== 'direct'); //
+  convBox.classList.toggle('hide', coolSel.value !== 'conv'); //
+}
+
+/* ======================= Server call ======================= */
+function runCalc() { //
+  const rows = [...tbl.tBodies[0].rows]; //
+  if (!rows.length) { //
+    alert('Add a layer first'); //
+    return; //
+  }
+  const layers = rows.map(r => ({ //
+    mat: r.cells[1].firstElementChild.value, //
+    t:   +r.cells[2].firstElementChild.value, //
+    kx:  +r.cells[3].firstElementChild.value, //
+    ky:  +r.cells[4].firstElementChild.value, //
+    kz:  +r.cells[5].firstElementChild.value //
+  }));
+
+  if(btnRun) btnRun.disabled = true; //
+  if(resultCard) resultCard.style.display = 'none';  //
+
+  google.script.run //
+    .withSuccessHandler(response => { //
+      draw(response); //
+      if(btnRun) btnRun.disabled = false;  //
+    })
+    .withFailureHandler(error => { //
+      alert('Error calculating: ' + error.message); //
+      console.error('Calculation error:', error); //
+      if(btnRun) btnRun.disabled = false;  //
+    })
+    .solve({ //
+      srcLen: +srcLen.value, //
+      srcWid: +srcWid.value, //
+      dies:   +dies.value, //
+      coolerMode: coolSel.value, //
+      coolerRth:  +coolRth.value, //
+      hConv:      +hConv.value, //
+      layers //
+    });
+}
+
+/* ======================= Main render ======================= */
+// MODIFICATION: o will now contain o.rCoolPerDie
+function draw(o) { 
+  // MODIFICATION: Check for new properties including o.rCoolPerDie
+  if (!o || typeof o.rDie === 'undefined' || typeof o.numDies === 'undefined' || !o.lengths || typeof o.rCoolPerDie === 'undefined' || typeof o.rTotal === 'undefined') { //
+    console.error('Invalid data received for drawing:', o); //
+    alert('Failed to process calculation results.'); //
+    return; //
+  }
+  outDie.textContent = `Rth / die = ${typeof o.rDie === 'number' && isFinite(o.rDie) ? o.rDie.toFixed(3) : '-'} °C/W`; //
+  outTot.textContent = `Total stack (all dies) = ${typeof o.rTotal === 'number' && isFinite(o.rTotal) ? o.rTotal.toFixed(3) : '-'} °C/W`; //
+  
+  buildCone(o.widths); //
+  
+  // MODIFICATION: Pass o.rCoolPerDie and o.rTotal to buildSummary
+  buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal);
+
+  if (resultCard) { //
+    resultCard.style.display = '';  //
+  }
+}
+
+/* ======================= 2‑D cone (SVG) ======================= */
+function buildCone(widths) { //
+  cone.innerHTML = '';  //
+  if (!widths || widths.length === 0) return; //
+
+  const tList = [...tbl.tBodies[0].rows].map(r => +r.cells[2].firstElementChild.value / 1e6); //
+  const Hm = tList.reduce((a, b) => a + b, 0);  //
+  const Wm = Math.max(...widths);  //
+
+  if (Hm === 0 || Wm === 0 || !isFinite(Wm)) { //
+    cone.textContent = 'Cannot draw cone: Layer thickness or initial width is zero, or max width is not finite.'; //
+    return; //
+  }
+
+  const W_svg = cone.clientWidth  || 340;  //
+  const H_svg = cone.clientHeight || 200;  //
+
+  const xS = W_svg / Wm;  //
+  const yS = Hm > 0 ? H_svg / Hm : 0;  //
+
+  const svg = NS('svg', { width: W_svg, height: H_svg, viewBox: `0 0 ${W_svg} ${H_svg}`, preserveAspectRatio: 'xMidYMid meet' }); //
+  let currentY_px = 0; //
+
+  widths.slice(0, -1).forEach((wTop_m, i) => {  //
+    if (i >= tList.length) return; //
+
+    const wBottom_m = widths[i + 1];       //
+    const h_layer_m = tList[i];       //
+    const h_layer_px = h_layer_m * yS; //
+
+    const xLeftTop_px = (W_svg - (wTop_m * xS)) / 2; //
+    const xRightTop_px = xLeftTop_px + (wTop_m * xS); //
+
+    const xLeftBottom_px = (W_svg - (wBottom_m * xS)) / 2; //
+    const xRightBottom_px = xLeftBottom_px + (wBottom_m * xS); //
+
+    const yBottom_px = currentY_px + h_layer_px; //
+
+    svg.appendChild( //
+      NS('polygon', { //
+        points: `${xLeftTop_px},${currentY_px} ${xRightTop_px},${currentY_px} ${xRightBottom_px},${yBottom_px} ${xLeftBottom_px},${yBottom_px}`, //
+        fill:   `hsl(${30 + i * 25}, 70%, 60%)`, //
+        stroke: '#222', //
+        'stroke-width': '0.5' //
+      })
+    );
+    currentY_px = yBottom_px; //
+  });
+  cone.appendChild(svg); //
+}
+
+
+/* ======================= Summary table + curve ======================= */
+// MODIFICATION: Updated signature and logic for buildSummary
+function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDie, rTotalForCoolerCum) {
+  sumBody.innerHTML = '';  //
+  // Check if essential layer data arrays are consistent if layers exist
+  if (rEach && rCumulative && lengthsFromServer && rEach.length > 0 && 
+      (rEach.length !== rCumulative.length || !lengthsFromServer)) { //
+      console.warn("buildSummary: Mismatch or missing data arrays for layers.", {rEach, rCumulative, lengthsFromServer, numDies}); //
+      return; //
+  }
+  // Check if essential overall data is present
+  if (typeof numDies === 'undefined' || typeof rCoolPerDie === 'undefined' || typeof rTotalForCoolerCum === 'undefined') { //
+      console.warn("buildSummary: Missing cooler-related data or numDies.", {numDies, rCoolPerDie, rTotalForCoolerCum}); //
+      return; // Essential data missing
+  }
+  
+  let effectiveNumDies = 1; //
+  if (typeof numDies === 'number' && numDies > 0 && isFinite(numDies)) { //
+    effectiveNumDies = numDies; //
+  } else {
+    console.warn("buildSummary: Invalid 'numDies' received (" + numDies + "), defaulting to 1."); //
+  }
+
+  const cumulativeRthForTotalStackGraph = []; // For the graph (layers only)
+
+  if (rEach && rEach.length > 0) { // Only iterate if there are layers and rEach is defined
+    rEach.forEach((val, i) => { //
+      const rEachLayerForTotalStack = (typeof val === 'number' && isFinite(val)) ? val / effectiveNumDies : val; //
+      const rCumLayerForTotalStack = (typeof rCumulative[i] === 'number' && isFinite(rCumulative[i])) ? rCumulative[i] / effectiveNumDies : rCumulative[i]; //
+      
+      if (typeof rCumLayerForTotalStack === 'number' && isFinite(rCumLayerForTotalStack)){ //
+          cumulativeRthForTotalStackGraph.push(rCumLayerForTotalStack); //
+      } else {
+          cumulativeRthForTotalStackGraph.push(rCumLayerForTotalStack);  //
+      }
+
+      let lengthAtBottom_mm_text = '-'; //
+      if (lengthsFromServer && lengthsFromServer.length > i + 1) {  //
+          const lengthAtBottom_m = lengthsFromServer[i+1]; //
+          if (typeof lengthAtBottom_m === 'number' && isFinite(lengthAtBottom_m)) { //
+              lengthAtBottom_mm_text = (lengthAtBottom_m * 1000).toFixed(3); //
+          }
+      }
+      
+      const row = sumBody.insertRow(); //
+      const rEachText = (typeof rEachLayerForTotalStack === 'number' && isFinite(rEachLayerForTotalStack)) ? rEachLayerForTotalStack.toFixed(4) : (rEachLayerForTotalStack === Infinity ? "Infinity" : "-"); //
+      const rCumText = (typeof rCumLayerForTotalStack === 'number' && isFinite(rCumLayerForTotalStack)) ? rCumLayerForTotalStack.toFixed(4) : (rCumLayerForTotalStack === Infinity ? "Infinity" : "-"); //
+
+      row.innerHTML = `<td>L${i + 1}</td><td>${rEachText}</td><td>${rCumText}</td><td>${lengthAtBottom_mm_text}</td>`; //
+    });
+  }
+
+  // Add Cooler Row
+  const coolerRthValTotalStack = (typeof rCoolPerDie === 'number' && isFinite(rCoolPerDie)) ? rCoolPerDie / effectiveNumDies : rCoolPerDie;
+  
+  const coolerRow = sumBody.insertRow();
+  const coolerRthText = (typeof coolerRthValTotalStack === 'number' && isFinite(coolerRthValTotalStack)) ? coolerRthValTotalStack.toFixed(4) : (coolerRthValTotalStack === Infinity ? "Infinity" : "-");
+  const coolerCumRthText = (typeof rTotalForCoolerCum === 'number' && isFinite(rTotalForCoolerCum)) ? rTotalForCoolerCum.toFixed(4) : (rTotalForCoolerCum === Infinity ? "Infinity" : "-");
+  
+  coolerRow.innerHTML = `<td>Cooler</td><td>${coolerRthText}</td><td>${coolerCumRthText}</td><td>-</td>`;
+
+  // Graphing logic remains for layers only
+  const finiteCumulativeRthForGraph = cumulativeRthForTotalStackGraph.filter(val => typeof val === 'number' && isFinite(val)); //
+  // Ensure graph is called appropriately even if no layers (cumulativeRthForTotalStackGraph will be empty)
+  if (finiteCumulativeRthForGraph.length > 0 || cumulativeRthForTotalStackGraph.every(v => v === 0 && isFinite(v)) ) { //
+      buildCurve( (finiteCumulativeRthForGraph.length === cumulativeRthForTotalStackGraph.length && cumulativeRthForTotalStackGraph.length > 0) ? cumulativeRthForTotalStackGraph : finiteCumulativeRthForGraph ); //
+  } else if (cumulativeRthForTotalStackGraph.length > 0 && cumulativeRthForTotalStackGraph.some(v => !(typeof v === 'number' && isFinite(v)))) {  //
+      console.warn("Cumulative Rth for graph (layers) contains only non-finite values that cannot be plotted.", cumulativeRthForTotalStackGraph); //
+      buildCurve([]); //
+  } else { 
+      buildCurve([]); //
+  }
+}
+
+/* ======================= Aqua line graph (Cumulative Rth) ======================= */
+function buildCurve(cumulativeRth) { //
+  cumSvg.innerHTML = '';  //
+  if (!cumulativeRth || cumulativeRth.length === 0) return; //
+
+  const numLayers = cumulativeRth.length; //
+  const W_svg = 260;  //
+  const H_svg = 140;  //
+  const margin = { left: 46, right: 10, top: 10, bottom: 30 }; //
+
+  const plotW = W_svg - margin.left - margin.right; //
+  const plotH = H_svg - margin.top - margin.bottom; //
+
+  if (plotW <= 0 || plotH <= 0) return; //
+
+  const finiteValuesForMax = cumulativeRth.filter(val => typeof val === 'number' && isFinite(val)); //
+  const maxRthValue = finiteValuesForMax.length > 0 ? Math.max(0, ...finiteValuesForMax) : 0; //
+
+  const xPos = i => margin.left + (numLayers > 1 ? (i / (numLayers - 1)) * plotW : plotW / 2); //
+  const yPos = val => { //
+      if (typeof val !== 'number' || !isFinite(val)) return margin.top; //
+      if (maxRthValue > 0) { //
+          return margin.top + plotH * (1 - (val / maxRthValue)); //
+      }
+      return margin.top + plotH; //
+  };
+
+  cumSvg.appendChild(NS('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: H_svg - margin.bottom, stroke: '#888', 'stroke-width': '1' })); //
+  cumSvg.appendChild(NS('line', { x1: margin.left, y1: H_svg - margin.bottom, x2: W_svg - margin.right, y2: H_svg - margin.bottom, stroke: '#888', 'stroke-width': '1' })); //
+
+  const numYTicks = 4; //
+  if (maxRthValue > 0 || cumulativeRth.every(v => v===0 && isFinite(v))) {  //
+    for (let t = 0; t <= numYTicks; t++) { //
+      const tickValue = (maxRthValue * t) / numYTicks; //
+      const y = yPos(tickValue); //
+      cumSvg.appendChild(NS('line', { x1: margin.left - 4, y1: y, x2: margin.left, y2: y, stroke: '#888' })); //
+      const yText = NS('text', { x: margin.left - 7, y: y + 4, 'text-anchor': 'end', fill: '#9ED1F5', 'font-size': '10px' }); //
+      yText.appendChild(document.createTextNode(tickValue.toFixed(2))); //
+      cumSvg.appendChild(yText); //
+    }
+  }
+
+  for (let i = 0; i < numLayers; i++) { //
+    const x = xPos(i); //
+    cumSvg.appendChild(NS('line', { x1: x, y1: H_svg - margin.bottom, x2: x, y2: H_svg - margin.bottom + 4, stroke: '#888' })); //
+    const xText = NS('text', { x: x, y: H_svg - margin.bottom + 16, 'text-anchor': 'middle', fill: '#9ED1F5', 'font-size': '10px' }); //
+    xText.appendChild(document.createTextNode(`L${i + 1}`)); //
+    cumSvg.appendChild(xText); //
+  }
+
+  const yAxisTitle = NS('text', { //
+    x: margin.left - 35, y: margin.top + plotH / 2, //
+    transform: `rotate(-90 ${margin.left - 35} ${margin.top + plotH / 2})`, //
+    fill: '#9ED1F5', 'font-size': '11px', 'text-anchor': 'middle' //
+  });
+  yAxisTitle.appendChild(document.createTextNode('Cum. Rth (°C/W)')); //
+  cumSvg.appendChild(yAxisTitle); //
+
+  const xAxisTitle = NS('text', { //
+    x: margin.left + plotW / 2, y: H_svg - 5, //
+    fill: '#9ED1F5', 'font-size': '11px', 'text-anchor': 'middle' //
+  });
+  xAxisTitle.appendChild(document.createTextNode('Layer')); //
+  cumSvg.appendChild(xAxisTitle); //
+  
+  const originalPoints = cumulativeRth.map((val, i) => `${xPos(i)},${yPos(val)}`).join(' '); //
+  if (numLayers > 0 && (finiteValuesForMax.length > 0 || cumulativeRth.every(v=> v === 0 && isFinite(v)))) { // Ensure there are plottable points
+      cumSvg.appendChild(NS('polyline', { points: originalPoints, fill: 'none', stroke: '#4FC3F7', 'stroke-width': '2' })); //
+  }
+}
+
+/* ======================= SVG helper ======================= */
+function NS(tag, attrs) { //
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag); //
+  if (attrs) { //
+    for (const k in attrs) { //
+      el.setAttribute(k, attrs[k]); //
+    }
+  }
+  return el; //
+}
+
+/* ======================= Initial setup ======================= */
+document.addEventListener('DOMContentLoaded', () => { //
+  if (btnAdd) btnAdd.onclick = () => addRow(); //
+  if (btnRun) btnRun.onclick = runCalc; //
+  if (coolSel) coolSel.onchange = updateCoolerVisibility; //
+
+  if (srcLen) srcLen.value = '5'; //
+  if (srcWid) srcWid.value = '5'; //
+  if (dies) dies.value = '4'; //
+
+  if (coolSel) coolSel.value = 'conv';  //
+  if (coolRth) coolRth.value = '0.30';    //
+
+  const initialLayers = [ //
+    { mat: "Die attach", t: 30, kx: 198, ky: 198, kz: 198 }, //
+    { mat: "Substrate (Cu)", t: 800, kx: 393, ky: 393, kz: 393 }, //
+    { mat: "Substrate (Ce)", t: 320, kx: 61, ky: 61, kz: 61 }, //
+    { mat: "Substrate (Cu)", t: 800, kx: 393, ky: 393, kz: 393 }, //
+    { mat: "Brazing", t: 200, kx: 38, ky: 38, kz: 38 } //
+  ];
+
+  if (tbl && typeof addRow === 'function') { //
+    initialLayers.forEach(layerData => addRow(layerData)); //
+  }
+
+  if (typeof updateCoolerVisibility === 'function') { //
+    updateCoolerVisibility(); //
+  }
+
+  if (resultCard) { //
+    resultCard.style.display = 'none'; //
+  }
+});
+
+</script>
