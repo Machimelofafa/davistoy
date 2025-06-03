@@ -63,8 +63,10 @@ function solve(p) {
     let slice_iter_widY_aniso = widthsY[widthsY.length - 1]; //
 
     if (layer_thickness_in_microns > 0) { //
-      for (let s = 0; s < layer_thickness_in_microns; s++) { //
-        const t_micro_slice_m = 1e-6; //
+      const step_um = Math.max(1, layer_thickness_in_microns / 100); // adaptive step
+      for (let processed = 0; processed < layer_thickness_in_microns; processed += step_um) { //
+        const slice_um = Math.min(step_um, layer_thickness_in_microns - processed); //
+        const t_micro_slice_m = slice_um * 1e-6; //
 
         const A_slice = slice_iter_len_iso * slice_iter_wid_iso; //
         let Ri_slice = Infinity; //
