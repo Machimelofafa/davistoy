@@ -24,3 +24,9 @@ After deployment you will receive a web app URL. Visiting that URL loads `index.
 2. Add material layers in the table.
 3. Click **Run** to calculate thermal resistance.
 
+## Contributing
+
+Improvements are welcome! Fork this repo and open a pull request with your changes.
+Use the **Run** button in the Apps Script editor to manually test your updates.
+If you add unit tests later, run them before submitting your PR.
+
