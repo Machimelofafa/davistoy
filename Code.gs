@@ -4,7 +4,7 @@
 
 /**
  * Solve the layer stack:
- * • conduction per layer (Ri) and cumulative, with 1µm discretization
+ * • conduction per layer (Ri) and cumulative, with adaptive micron-scale discretization
  * • isotropic cone footprint  (lengths[], widths[])
  * • orthotropic footprints    (widthsX[], widthsY[])
  * • cooler term (direct or convection)
@@ -63,46 +63,43 @@ function solve(p) {
     let slice_iter_widY_aniso = widthsY[widthsY.length - 1]; //
 
     if (layer_thickness_in_microns > 0) { //
-      for (let s = 0; s < layer_thickness_in_microns; s++) { //
-        const t_micro_slice_m = 1e-6; //
+      const kxy_layer = (L.kx + L.ky) / 2;
+      const sqrt_ratio_iso = (L.kz > 0 && kxy_layer >= 0) ? Math.sqrt(kxy_layer / L.kz) : 0;
+      const sqrt_ratio_x   = (L.kz > 0 && L.kx >= 0) ? Math.sqrt(L.kx / L.kz) : 0;
+      const sqrt_ratio_y   = (L.kz > 0 && L.ky >= 0) ? Math.sqrt(L.ky / L.kz) : 0;
 
-        const A_slice = slice_iter_len_iso * slice_iter_wid_iso; //
-        let Ri_slice = Infinity; //
+      let remaining_um = layer_thickness_in_microns;
+      let step_um = Math.min(10, remaining_um);
 
-        if (L.kz > 0 && A_slice > 0) { //
-          Ri_slice = t_micro_slice_m / (L.kz * A_slice); //
+      while (remaining_um > 0) {
+        const dz_um = Math.min(step_um, remaining_um);
+        const dz_m  = dz_um * 1e-6;
+
+        const A_slice = slice_iter_len_iso * slice_iter_wid_iso;
+        let Ri_slice = Infinity;
+        if (L.kz > 0 && A_slice > 0) {
+          Ri_slice = dz_m / (L.kz * A_slice);
         }
-        current_layer_total_R += Ri_slice; //
+        current_layer_total_R += Ri_slice;
 
-        let delta_iso_slice = 0; //
-        if (L.kz > 0) {  //
-          const kxy_slice = (L.kx + L.ky) / 2; //
-          if (kxy_slice >= 0) {  //
-            const ratio_iso = kxy_slice / L.kz; //
-            const alpha_iso_slice = Math.atan(Math.sqrt(Math.max(0, ratio_iso))); //
-            delta_iso_slice = 2 * t_micro_slice_m * Math.tan(alpha_iso_slice); //
+        const delta_iso_slice = 2 * dz_m * sqrt_ratio_iso;
+        slice_iter_len_iso += delta_iso_slice;
+        slice_iter_wid_iso += delta_iso_slice;
+
+        const delta_aniso_X_slice = 2 * dz_m * sqrt_ratio_x;
+        const delta_aniso_Y_slice = 2 * dz_m * sqrt_ratio_y;
+        slice_iter_widX_aniso += delta_aniso_X_slice;
+        slice_iter_widY_aniso += delta_aniso_Y_slice;
+
+        remaining_um -= dz_um;
+        if (current_layer_total_R > 0) {
+          const relChange = Ri_slice / current_layer_total_R;
+          if (relChange > 0.005 && step_um > 1) {
+            step_um = step_um / 2;
+          } else if (relChange < 0.001 && step_um < 10) {
+            step_um = Math.min(10, step_um * 2);
           }
         }
-        slice_iter_len_iso += delta_iso_slice; //
-        slice_iter_wid_iso += delta_iso_slice; //
-        
-        let delta_aniso_X_slice = 0; //
-        let delta_aniso_Y_slice = 0; //
-
-        if (L.kz > 0) {  //
-          if (L.kx >= 0) { //
-            const ratioX = L.kx / L.kz; //
-            const alphaX_aniso_slice = Math.atan(Math.sqrt(Math.max(0, ratioX))); //
-            delta_aniso_X_slice = 2 * t_micro_slice_m * Math.tan(alphaX_aniso_slice); //
-          }
-          if (L.ky >= 0) { //
-            const ratioY = L.ky / L.kz; //
-            const alphaY_aniso_slice = Math.atan(Math.sqrt(Math.max(0, ratioY))); //
-            delta_aniso_Y_slice = 2 * t_micro_slice_m * Math.tan(alphaY_aniso_slice); //
-          }
-        }
-        slice_iter_widX_aniso += delta_aniso_X_slice; //
-        slice_iter_widY_aniso += delta_aniso_Y_slice; //
       }
     } else { 
         current_layer_total_R = 0; //
@@ -125,8 +122,14 @@ function solve(p) {
   let rCool = 0; //
   const final_area_for_cooler = len * wid; //
   if (p.coolerMode === 'conv') { //
-    if (p.hConv > 0 && final_area_for_cooler > 0) { //
-        rCool = 1 / (p.hConv * final_area_for_cooler); //
+    if (Array.isArray(p.hMap) && p.hMap.length && final_area_for_cooler > 0) { //
+        var sumH = 0;
+        p.hMap.forEach(function(h) { sumH += (typeof h === 'number' && h > 0) ? h : 0; });
+        var avgH = sumH / p.hMap.length;
+        rCool = avgH > 0 ? 1 / (avgH * final_area_for_cooler) : Infinity; //
+    } else if (p.hConv > 0 && final_area_for_cooler > 0) { //
+        var shapeFactor = (typeof p.shapeFactor === 'number' && p.shapeFactor > 0) ? p.shapeFactor : 1;
+        rCool = 1 / (p.hConv * final_area_for_cooler * shapeFactor); //
     } else {
         rCool = Infinity; //
     }
