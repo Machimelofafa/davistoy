@@ -12,6 +12,7 @@ const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
 const outDie = $('outDie'), outTot = $('outTotal'); //
 const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
 const resultCard = $('resultCard'); //
+const btnExport = $('btnExport'); //
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
@@ -100,8 +101,8 @@ function draw(o) {
   
   buildCone(o.widths); //
   
-  // MODIFICATION: Pass o.rCoolPerDie and o.rTotal to buildSummary
-  buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal);
+  // MODIFICATION: Pass o.rCoolPerDie, o.rTotal and o.rStack to buildSummary
+  buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack);
 
   if (resultCard) { //
     resultCard.style.display = '';  //
@@ -162,7 +163,7 @@ function buildCone(widths) { //
 
 /* ======================= Summary table + curve ======================= */
 // MODIFICATION: Updated signature and logic for buildSummary
-function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDie, rTotalForCoolerCum) {
+function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDie, rTotalForCoolerCum, rStack) {
   sumBody.innerHTML = '';  //
   // Check if essential layer data arrays are consistent if layers exist
   if (rEach && rCumulative && lengthsFromServer && rEach.length > 0 && 
@@ -184,6 +185,8 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
   }
 
   const cumulativeRthForTotalStackGraph = []; // For the graph (layers only)
+  let highestIdx = -1; // track highest resistance layer
+  let highestVal = -Infinity;
 
   if (rEach && rEach.length > 0) { // Only iterate if there are layers and rEach is defined
     rEach.forEach((val, i) => { //
@@ -208,8 +211,24 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
       const rEachText = (typeof rEachLayerForTotalStack === 'number' && isFinite(rEachLayerForTotalStack)) ? rEachLayerForTotalStack.toFixed(4) : (rEachLayerForTotalStack === Infinity ? "Infinity" : "-"); //
       const rCumText = (typeof rCumLayerForTotalStack === 'number' && isFinite(rCumLayerForTotalStack)) ? rCumLayerForTotalStack.toFixed(4) : (rCumLayerForTotalStack === Infinity ? "Infinity" : "-"); //
 
-      row.innerHTML = `<td>L${i + 1}</td><td>${rEachText}</td><td>${rCumText}</td><td>${lengthAtBottom_mm_text}</td>`; //
+      let contrib = '-';
+      let sensText = '-';
+      if (typeof rStack === 'number' && isFinite(rStack) && rStack > 0 && typeof val === 'number' && isFinite(val)) {
+        const perc = (val / rStack) * 100;
+        contrib = perc.toFixed(1);
+        sensText = perc.toFixed(1);
+      }
+
+      if (typeof val === 'number' && isFinite(val) && val > highestVal) {
+        highestVal = val;
+        highestIdx = i;
+      }
+
+      row.innerHTML = `<td>L${i + 1}</td><td>${rEachText}</td><td>${rCumText}</td><td>${lengthAtBottom_mm_text}</td><td>${contrib}</td><td>${sensText}</td>`; //
     });
+    if (highestIdx >= 0 && sumBody.rows[highestIdx]) {
+      sumBody.rows[highestIdx].classList.add('critical');
+    }
   }
 
   // Add Cooler Row
@@ -219,7 +238,7 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
   const coolerRthText = (typeof coolerRthValTotalStack === 'number' && isFinite(coolerRthValTotalStack)) ? coolerRthValTotalStack.toFixed(4) : (coolerRthValTotalStack === Infinity ? "Infinity" : "-");
   const coolerCumRthText = (typeof rTotalForCoolerCum === 'number' && isFinite(rTotalForCoolerCum)) ? rTotalForCoolerCum.toFixed(4) : (rTotalForCoolerCum === Infinity ? "Infinity" : "-");
   
-  coolerRow.innerHTML = `<td>Cooler</td><td>${coolerRthText}</td><td>${coolerCumRthText}</td><td>-</td>`;
+  coolerRow.innerHTML = `<td>Cooler</td><td>${coolerRthText}</td><td>${coolerCumRthText}</td><td>-</td><td>-</td><td>-</td>`;
 
   // Graphing logic remains for layers only
   const finiteCumulativeRthForGraph = cumulativeRthForTotalStackGraph.filter(val => typeof val === 'number' && isFinite(val)); //
@@ -316,10 +335,27 @@ function NS(tag, attrs) { //
   return el; //
 }
 
+/* ======================= Export results ======================= */
+function exportResults() { //
+  const table = $('sumTbl'); //
+  if (!table) return; //
+  const rows = [...table.rows]; //
+  const csv = rows.map(r => [...r.cells].map(c => '"' + c.textContent + '"').join(',')).join('\n'); //
+  const blob = new Blob([csv], {type: 'text/csv'}); //
+  const url = URL.createObjectURL(blob); //
+  const a = document.createElement('a'); //
+  a.href = url; //
+  a.download = 'rth_results.csv'; //
+  document.body.appendChild(a); //
+  a.click(); //
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0); //
+}
+
 /* ======================= Initial setup ======================= */
 document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow(); //
   if (btnRun) btnRun.onclick = runCalc; //
+  if (btnExport) btnExport.onclick = exportResults; //
   if (coolSel) coolSel.onchange = updateCoolerVisibility; //
 
   if (srcLen) srcLen.value = '5'; //

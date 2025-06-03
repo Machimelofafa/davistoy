@@ -167,7 +167,8 @@ function solve(p) {
     rDie,       // Total R_th per die (stack + cooler)
     rTotal,     // Overall R_th for all dies combined
     numDies: p.dies, // Pass number of dies to client
-    rCoolPerDie: rCool // ADDED: Pass per-die cooler resistance to client
+    rCoolPerDie: rCool, // ADDED: Pass per-die cooler resistance to client
+    rStack      // Send cumulative stack Rth back for percentage calculations
   };
 }
 
