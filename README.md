@@ -23,7 +23,6 @@ After deployment you will receive a web app URL. Visiting that URL loads `index.
 1. Enter the heat source length and width.
 2. Add material layers in the table.
 3. Click **Run** to calculate thermal resistance.
-4. When using convection mode you may optionally provide a `shapeFactor` or an `hMap` array to model non-uniform cooling.
 
 ## Contributing
 
