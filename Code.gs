@@ -15,6 +15,8 @@
  */
 function solve(p) {
 
+  const RTH_LIMIT = 100; // abort if cumulative Rth exceeds this
+
   // Validate payload structure
   var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth'];
   numericFields.forEach(function(field) {
@@ -22,6 +24,17 @@ function solve(p) {
       throw new Error('Invalid payload: "' + field + '" must be a number');
     }
   });
+
+  // Guard against non-positive values
+  if (p.srcLen <= 0 || p.srcWid <= 0 || p.dies <= 0) {
+    throw new Error('Source dimensions and dies must be positive');
+  }
+  if (p.coolerMode === 'conv' && p.hConv <= 0) {
+    throw new Error('hConv must be positive for convection mode');
+  }
+  if (p.coolerMode === 'direct' && p.coolerRth <= 0) {
+    throw new Error('coolerRth must be positive for direct mode');
+  }
 
   if (!Array.isArray(p.layers)) {
     throw new Error('Invalid payload: "layers" must be an array');
@@ -33,6 +46,9 @@ function solve(p) {
     ['t', 'kx', 'ky', 'kz'].forEach(function(prop) {
       if (typeof L[prop] !== 'number' || isNaN(L[prop])) {
         throw new Error('Invalid layer at index ' + idx + ': "' + prop + '" must be a number');
+      }
+      if (L[prop] <= 0) {
+        throw new Error('Layer ' + (idx + 1) + ' property "' + prop + '" must be positive');
       }
     });
   });
@@ -56,6 +72,17 @@ function solve(p) {
     let current_layer_total_R = 0; //
     const layer_thickness_in_microns = L.t; //
 
+    // Pre-compute α angles and their tangents for this layer
+    const ratioIso = (L.kx + L.ky) / (2 * L.kz);
+    const alphaIso = Math.atan(Math.sqrt(ratioIso));
+    const tanIso   = Math.tan(alphaIso);
+
+    const alphaX = Math.atan(Math.sqrt(L.kx / L.kz));
+    const tanX   = Math.tan(alphaX);
+
+    const alphaY = Math.atan(Math.sqrt(L.ky / L.kz));
+    const tanY   = Math.tan(alphaY);
+
     let slice_iter_len_iso = len; //
     let slice_iter_wid_iso = wid; //
     
@@ -75,34 +102,17 @@ function solve(p) {
           Ri_slice = t_micro_slice_m / (L.kz * A_slice); //
         }
         current_layer_total_R += Ri_slice; //
-
-        let delta_iso_slice = 0; //
-        if (L.kz > 0) {  //
-          const kxy_slice = (L.kx + L.ky) / 2; //
-          if (kxy_slice >= 0) {  //
-            const ratio_iso = kxy_slice / L.kz; //
-            const alpha_iso_slice = Math.atan(Math.sqrt(Math.max(0, ratio_iso))); //
-            delta_iso_slice = 2 * t_micro_slice_m * Math.tan(alpha_iso_slice); //
-          }
+        const runningTotal = (rCum.length > 0 ? rCum[rCum.length - 1] : 0) + current_layer_total_R;
+        if (runningTotal > RTH_LIMIT) {
+          throw new Error('Cumulative Rth exceeds ' + RTH_LIMIT + ' \xB0C/W');
         }
+
+        const delta_iso_slice = 2 * t_micro_slice_m * tanIso;
         slice_iter_len_iso += delta_iso_slice; //
         slice_iter_wid_iso += delta_iso_slice; //
-        
-        let delta_aniso_X_slice = 0; //
-        let delta_aniso_Y_slice = 0; //
 
-        if (L.kz > 0) {  //
-          if (L.kx >= 0) { //
-            const ratioX = L.kx / L.kz; //
-            const alphaX_aniso_slice = Math.atan(Math.sqrt(Math.max(0, ratioX))); //
-            delta_aniso_X_slice = 2 * t_micro_slice_m * Math.tan(alphaX_aniso_slice); //
-          }
-          if (L.ky >= 0) { //
-            const ratioY = L.ky / L.kz; //
-            const alphaY_aniso_slice = Math.atan(Math.sqrt(Math.max(0, ratioY))); //
-            delta_aniso_Y_slice = 2 * t_micro_slice_m * Math.tan(alphaY_aniso_slice); //
-          }
-        }
+        const delta_aniso_X_slice = 2 * t_micro_slice_m * tanX;
+        const delta_aniso_Y_slice = 2 * t_micro_slice_m * tanY;
         slice_iter_widX_aniso += delta_aniso_X_slice; //
         slice_iter_widY_aniso += delta_aniso_Y_slice; //
       }
