@@ -239,6 +239,83 @@ function solveMonteCarlo(p) {
   };
 }
 
+/* ==================== Thickness optimization ==================== */
+function optimizeLayers(p) {
+  // Clone layers to avoid mutating original input
+  let layers = p.layers.map(L => ({ t: L.t, kx: L.kx, ky: L.ky, kz: L.kz }));
+  const cfg = {
+    maxIter: 20,
+    lr: 0.2,
+    deltaFrac: 0.05
+  };
+
+  let base;
+  try {
+    base = solve(Object.assign({}, p, { layers })).rDie;
+  } catch (err) {
+    throw new Error('Initial solve failed: ' + err.message);
+  }
+  let bestR = base;
+  let bestLayers = layers.map(l => Object.assign({}, l));
+
+  for (let iter = 0; iter < cfg.maxIter; iter++) {
+    let improved = false;
+    for (let i = 0; i < layers.length; i++) {
+      const t = layers[i].t;
+      if (!(t > 0)) continue;
+      const delta = Math.max(0.1, t * cfg.deltaFrac);
+
+      layers[i].t = t + delta;
+      let rPlus;
+      try {
+        rPlus = solve(Object.assign({}, p, { layers })).rDie;
+      } catch (e) {
+        rPlus = Infinity;
+      }
+
+      layers[i].t = t - delta;
+      let rMinus = Infinity;
+      if (layers[i].t > 0) {
+        try {
+          rMinus = solve(Object.assign({}, p, { layers })).rDie;
+        } catch (e) {
+          rMinus = Infinity;
+        }
+      }
+      layers[i].t = t;
+
+      const grad = (rPlus - rMinus) / (2 * delta);
+      if (!isFinite(grad)) continue;
+
+      const newT = t - cfg.lr * grad * delta;
+      if (newT <= 0) continue;
+
+      const old = layers[i].t;
+      layers[i].t = newT;
+      let newR;
+      try {
+        newR = solve(Object.assign({}, p, { layers })).rDie;
+      } catch (e) {
+        newR = Infinity;
+      }
+      if (newR < base) {
+        base = newR;
+        improved = true;
+      } else {
+        layers[i].t = old; // revert
+      }
+    }
+    if (base < bestR) {
+      bestR = base;
+      bestLayers = layers.map(l => Object.assign({}, l));
+    }
+    if (!improved) break;
+  }
+
+  const recs = bestLayers.map((L, idx) => ({ layer: idx + 1, thickness: L.t }));
+  return { recommendations: recs, rDie: bestR };
+}
+
 /* ====================================================================================================
    UI bootstrap helpers (doGet, inc) - These functions remain unchanged.
    ==================================================================================================== */
