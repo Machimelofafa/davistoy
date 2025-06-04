@@ -172,6 +172,73 @@ function solve(p) {
   };
 }
 
+/* ==================== Monte Carlo solver ==================== */
+function randomNormal() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function solveMonteCarlo(p) {
+  const iter = Math.max(1, Math.floor(p.iterations || 1));
+  const uncT = typeof p.uncT === 'number' ? p.uncT : 0;
+  const uncK = typeof p.uncK === 'number' ? p.uncK : 0;
+
+  const results = [];
+  const critical = Array(p.layers.length).fill(0);
+
+  for (let i = 0; i < iter; i++) {
+    const perturbed = p.layers.map(L => ({
+      t:  L.t  * (1 + randomNormal() * uncT),
+      kx: L.kx * (1 + randomNormal() * uncK),
+      ky: L.ky * (1 + randomNormal() * uncK),
+      kz: L.kz * (1 + randomNormal() * uncK)
+    }));
+
+    try {
+      const r = solve({
+        srcLen: p.srcLen,
+        srcWid: p.srcWid,
+        dies:   p.dies,
+        coolerMode: p.coolerMode,
+        coolerRth:  p.coolerRth,
+        hConv:      p.hConv,
+        layers: perturbed
+      });
+      results.push(r.rDie);
+      let maxV = -Infinity, maxI = 0;
+      r.rEach.forEach((val, idx) => {
+        if (typeof val === 'number' && val > maxV) { maxV = val; maxI = idx; }
+      });
+      critical[maxI]++;
+    } catch (err) {
+      // skip failed iteration
+    }
+  }
+
+  const n = results.length;
+  if (n === 0) {
+    return { iterations: 0, results: [], critical };
+  }
+
+  const mean = results.reduce((a, b) => a + b, 0) / n;
+  const variance = results.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n;
+  const sorted = results.slice().sort((a, b) => a - b);
+  const median = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+
+  return {
+    iterations: n,
+    results,
+    mean,
+    stdev: Math.sqrt(variance),
+    min: sorted[0],
+    max: sorted[n - 1],
+    median,
+    critical
+  };
+}
+
 /* ====================================================================================================
    UI bootstrap helpers (doGet, inc) - These functions remain unchanged.
    ==================================================================================================== */
