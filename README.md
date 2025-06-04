@@ -20,12 +20,13 @@
  
  ## Basic Usage
  
- 1. Enter the heat source length and width.
- 2. Add material layers in the table.
- 3. Click **Run** to calculate thermal resistance.
- 4. Use **Monte Carlo** to simulate uncertainty; adjust iterations and deviation in the Monte Carlo section.
- 5. Hover over form labels to view tooltips explaining the parameters.
- 6. Tooltips on the results table and graphs explain the values shown.
+1. Enter the heat source length and width.
+2. Add material layers in the table.
+   Each layer requires thickness **t**, in‑plane conductivity **kxy** and through‑plane conductivity **kz**.
+3. Click **Run** to calculate thermal resistance.
+4. Use **Monte Carlo** to simulate uncertainty; adjust iterations and deviation in the Monte Carlo section.
+5. Hover over form labels to view tooltips explaining the parameters.
+6. Tooltips on the results table and graphs explain the values shown.
  
 ## Calculation Approach
 
