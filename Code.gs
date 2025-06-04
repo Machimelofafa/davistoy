@@ -316,6 +316,22 @@ function optimizeLayers(p) {
   return { recommendations: recs, rDie: bestR };
 }
 
+/* ==================== Stack persistence ==================== */
+function setStack(stack) {
+  try {
+    const json = typeof stack === 'string' ? stack : JSON.stringify(stack);
+    PropertiesService.getUserProperties().setProperty('stackPayload', json);
+    return true;
+  } catch (e) {
+    throw new Error('Failed to store stack: ' + e.message);
+  }
+}
+
+function getStack() {
+  const json = PropertiesService.getUserProperties().getProperty('stackPayload');
+  return json ? JSON.parse(json) : null;
+}
+
 /* ====================================================================================================
    UI bootstrap helpers (doGet, inc) - These functions remain unchanged.
    ==================================================================================================== */
