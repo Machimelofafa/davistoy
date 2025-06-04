@@ -86,7 +86,8 @@ function runCalc() { //
       coolerMode: coolSel.value, //
       coolerRth:  +coolRth.value, //
       hConv:      +hConv.value, //
-      layers //
+      layers, //
+      sensitivity: true //
     });
 }
 
@@ -145,8 +146,8 @@ function draw(o) {
   
   buildCone(o.widths); //
   
-  // MODIFICATION: Pass o.rCoolPerDie, o.rTotal and o.rStack to buildSummary
-  buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack);
+  // MODIFICATION: Pass sensitivity data along with cooler info
+  buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack, o.sensitivity);
 
   if (resultCard) { //
     resultCard.style.display = '';  //
@@ -161,6 +162,11 @@ function drawMonte(o) {
   }
   mcStats.textContent = `n=${o.iterations}, mean=${o.mean.toFixed(3)}\u00A0\xB0C/W, \u03C3=${o.stdev.toFixed(3)}`;
   buildHistogram(o.results);
+  if (o.critical && Array.isArray(o.critical) && o.critical.length > 0) {
+    const idx = o.critical.indexOf(Math.max(...o.critical));
+    [...sumBody.rows].forEach(r => r.classList.remove('critical'));
+    if (sumBody.rows[idx]) sumBody.rows[idx].classList.add('critical');
+  }
   if (mcCard) mcCard.style.display = '';
 }
 
@@ -218,7 +224,7 @@ function buildCone(widths) { //
 
 /* ======================= Summary table + curve ======================= */
 // MODIFICATION: Updated signature and logic for buildSummary
-function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDie, rTotalForCoolerCum, rStack) {
+function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDie, rTotalForCoolerCum, rStack, sensData) {
   sumBody.innerHTML = '';  //
   // Check if essential layer data arrays are consistent if layers exist
   if (rEach && rCumulative && lengthsFromServer && rEach.length > 0 && 
@@ -268,10 +274,14 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
 
       let contrib = '-';
       let sensText = '-';
+      const sensObj = sensData && sensData.layers && sensData.layers[i];
       if (typeof rStack === 'number' && isFinite(rStack) && rStack > 0 && typeof val === 'number' && isFinite(val)) {
         const perc = (val / rStack) * 100;
         contrib = perc.toFixed(1);
-        sensText = perc.toFixed(1);
+      }
+      if (sensObj) {
+        const mag = Math.sqrt(Math.pow(sensObj.t,2) + Math.pow(sensObj.kx,2) + Math.pow(sensObj.ky,2) + Math.pow(sensObj.kz,2)) * 100;
+        sensText = isFinite(mag) ? mag.toFixed(1) : '-';
       }
 
       if (typeof val === 'number' && isFinite(val) && val > highestVal) {
@@ -279,7 +289,11 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
         highestIdx = i;
       }
 
-      row.innerHTML = `<td>L${i + 1}</td><td>${rEachText}</td><td>${rCumText}</td><td>${lengthAtBottom_mm_text}</td><td>${contrib}</td><td>${sensText}</td>`; //
+      row.innerHTML = `<td>L${i + 1}</td><td>${rEachText}</td><td>${rCumText}</td><td>${lengthAtBottom_mm_text}</td><td>${contrib}</td><td>${sensText}</td>`;
+      if (sensObj) {
+        const tip = `dt:${(sensObj.t*100).toFixed(1)}% dkx:${(sensObj.kx*100).toFixed(1)}% dky:${(sensObj.ky*100).toFixed(1)}% dkz:${(sensObj.kz*100).toFixed(1)}%`;
+        row.cells[5].title = tip;
+      }
     });
     if (highestIdx >= 0 && sumBody.rows[highestIdx]) {
       sumBody.rows[highestIdx].classList.add('critical');
@@ -293,7 +307,13 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
   const coolerRthText = (typeof coolerRthValTotalStack === 'number' && isFinite(coolerRthValTotalStack)) ? coolerRthValTotalStack.toFixed(4) : (coolerRthValTotalStack === Infinity ? "Infinity" : "-");
   const coolerCumRthText = (typeof rTotalForCoolerCum === 'number' && isFinite(rTotalForCoolerCum)) ? rTotalForCoolerCum.toFixed(4) : (rTotalForCoolerCum === Infinity ? "Infinity" : "-");
   
-  coolerRow.innerHTML = `<td>Cooler</td><td>${coolerRthText}</td><td>${coolerCumRthText}</td><td>-</td><td>-</td><td>-</td>`;
+  let coolerSensText = '-';
+  if (sensData && sensData.cooler) {
+    const c = sensData.cooler;
+    const v = c.hConv !== undefined ? Math.abs(c.hConv) * 100 : (c.coolerRth !== undefined ? Math.abs(c.coolerRth) * 100 : NaN);
+    if (!isNaN(v) && isFinite(v)) coolerSensText = v.toFixed(1);
+  }
+  coolerRow.innerHTML = `<td>Cooler</td><td>${coolerRthText}</td><td>${coolerCumRthText}</td><td>-</td><td>-</td><td>${coolerSensText}</td>`;
 
   // Graphing logic remains for layers only
   const finiteCumulativeRthForGraph = cumulativeRthForTotalStackGraph.filter(val => typeof val === 'number' && isFinite(val)); //
