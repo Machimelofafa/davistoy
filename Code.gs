@@ -43,7 +43,7 @@ function coreSolve(p) {
     if (typeof L !== 'object' || L === null) {
       throw new Error('Invalid layer at index ' + idx + ': must be an object');
     }
-    ['t', 'kx', 'ky', 'kz'].forEach(function(prop) {
+    ['t', 'kxy', 'kz'].forEach(function(prop) {
       if (typeof L[prop] !== 'number' || isNaN(L[prop])) {
         throw new Error('Invalid layer at index ' + idx + ': "' + prop + '" must be a number');
       }
@@ -73,15 +73,12 @@ function coreSolve(p) {
     const layer_thickness_in_microns = L.t; //
 
     // Pre-compute α angles and their tangents for this layer
-    const ratioIso = (L.kx + L.ky) / (2 * L.kz);
+    const ratioIso = L.kxy / L.kz;
     const alphaIso = Math.atan(Math.sqrt(ratioIso));
     const tanIso   = Math.tan(alphaIso);
 
-    const alphaX = Math.atan(Math.sqrt(L.kx / L.kz));
-    const tanX   = Math.tan(alphaX);
-
-    const alphaY = Math.atan(Math.sqrt(L.ky / L.kz));
-    const tanY   = Math.tan(alphaY);
+    const alphaXY = Math.atan(Math.sqrt(L.kxy / L.kz));
+    const tanXY   = Math.tan(alphaXY);
 
     let slice_iter_len_iso = len; //
     let slice_iter_wid_iso = wid; //
@@ -111,8 +108,8 @@ function coreSolve(p) {
         slice_iter_len_iso += delta_iso_slice; //
         slice_iter_wid_iso += delta_iso_slice; //
 
-        const delta_aniso_X_slice = 2 * t_micro_slice_m * tanX;
-        const delta_aniso_Y_slice = 2 * t_micro_slice_m * tanY;
+        const delta_aniso_X_slice = 2 * t_micro_slice_m * tanXY;
+        const delta_aniso_Y_slice = 2 * t_micro_slice_m * tanXY;
         slice_iter_widX_aniso += delta_aniso_X_slice; //
         slice_iter_widY_aniso += delta_aniso_Y_slice; //
       }
@@ -176,7 +173,7 @@ function computeSensitivity(p, baseR) {
   var frac = 0.01;
   var layerSens = p.layers.map(function(L, idx) {
     var res = {};
-    ['t','kx','ky','kz'].forEach(function(par){
+    ['t','kxy','kz'].forEach(function(par){
       var delta = (L[par] || 0) * frac || frac;
       var plus = JSON.parse(JSON.stringify(p));
       plus.sensitivity = false;
@@ -237,10 +234,9 @@ function solveMonteCarlo(p) {
 
   for (let i = 0; i < iter; i++) {
     const perturbed = p.layers.map(L => ({
-      t:  L.t  * (1 + randomNormal() * uncT),
-      kx: L.kx * (1 + randomNormal() * uncK),
-      ky: L.ky * (1 + randomNormal() * uncK),
-      kz: L.kz * (1 + randomNormal() * uncK)
+      t:   L.t   * (1 + randomNormal() * uncT),
+      kxy: L.kxy * (1 + randomNormal() * uncK),
+      kz:  L.kz  * (1 + randomNormal() * uncK)
     }));
 
     try {

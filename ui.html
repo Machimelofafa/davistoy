@@ -30,8 +30,7 @@ function addRow(p = {}) { //
     `<td>${rNo}</td>
      <td><input class="mat" value="${p.mat || ''}"></td>
      <td><input type="number" min="0" value="${p.t || 100}"></td>
-     <td><input type="number" min="0" value="${p.kx || 200}"></td>
-     <td><input type="number" min="0" value="${p.ky || 200}"></td>
+     <td><input type="number" min="0" value="${p.kxy || 200}"></td>
      <td><input type="number" min="0" value="${p.kz || 200}"></td>
      <td><button class="trash">🗑️</button></td>`;
   newRow.querySelector('.trash').onclick = e => { //
@@ -61,17 +60,16 @@ function runCalc() { //
 
   const layers = []; //
   for (const r of rows) { //
-    const t  = +r.cells[2].firstElementChild.value; //
-    const kx = +r.cells[3].firstElementChild.value; //
-    const ky = +r.cells[4].firstElementChild.value; //
-    const kz = +r.cells[5].firstElementChild.value; //
-    if (t <= 0 || kx <= 0 || ky <= 0 || kz <= 0) { //
+    const t   = +r.cells[2].firstElementChild.value; //
+    const kxy = +r.cells[3].firstElementChild.value; //
+    const kz  = +r.cells[4].firstElementChild.value; //
+    if (t <= 0 || kxy <= 0 || kz <= 0) { //
       alert('Layer values must be positive numbers'); //
       return; //
     } //
     layers.push({ //
       mat: r.cells[1].firstElementChild.value, //
-      t, kx, ky, kz //
+      t, kxy, kz //
     }); //
   }
 
@@ -122,9 +120,8 @@ function runMonte() { //
   const layers = rows.map(r => ({ //
     mat: r.cells[1].firstElementChild.value, //
     t:   +r.cells[2].firstElementChild.value, //
-    kx:  +r.cells[3].firstElementChild.value, //
-    ky:  +r.cells[4].firstElementChild.value, //
-    kz:  +r.cells[5].firstElementChild.value //
+    kxy: +r.cells[3].firstElementChild.value, //
+    kz:  +r.cells[4].firstElementChild.value //
   }));
 
   if(btnMonte) btnMonte.disabled = true; //
@@ -302,7 +299,7 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
         contrib = perc.toFixed(1);
       }
       if (sensObj) {
-        const mag = Math.sqrt(Math.pow(sensObj.t,2) + Math.pow(sensObj.kx,2) + Math.pow(sensObj.ky,2) + Math.pow(sensObj.kz,2)) * 100;
+        const mag = Math.sqrt(Math.pow(sensObj.t,2) + Math.pow(sensObj.kxy,2) + Math.pow(sensObj.kz,2)) * 100;
         sensText = isFinite(mag) ? mag.toFixed(1) : '-';
       }
 
@@ -313,7 +310,7 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
 
       row.innerHTML = `<td>L${i + 1}</td><td>${rEachText}</td><td>${rCumText}</td><td>${lengthAtBottom_mm_text}</td><td>${contrib}</td><td>${sensText}</td>`;
       if (sensObj) {
-        const tip = `dt:${(sensObj.t*100).toFixed(1)}% dkx:${(sensObj.kx*100).toFixed(1)}% dky:${(sensObj.ky*100).toFixed(1)}% dkz:${(sensObj.kz*100).toFixed(1)}%`;
+        const tip = `dt:${(sensObj.t*100).toFixed(1)}% dkxy:${(sensObj.kxy*100).toFixed(1)}% dkz:${(sensObj.kz*100).toFixed(1)}%`;
         row.cells[5].title = tip;
       }
     });
@@ -497,11 +494,11 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (mcUncK) mcUncK.value = '5'; //
 
   const initialLayers = [ //
-    { mat: "Die attach", t: 30, kx: 198, ky: 198, kz: 198 }, //
-    { mat: "Substrate (Cu)", t: 800, kx: 393, ky: 393, kz: 393 }, //
-    { mat: "Substrate (Ce)", t: 320, kx: 61, ky: 61, kz: 61 }, //
-    { mat: "Substrate (Cu)", t: 800, kx: 393, ky: 393, kz: 393 }, //
-    { mat: "Brazing", t: 200, kx: 38, ky: 38, kz: 38 } //
+    { mat: "Die attach", t: 30, kxy: 198, kz: 198 }, //
+    { mat: "Substrate (Cu)", t: 800, kxy: 393, kz: 393 }, //
+    { mat: "Substrate (Ce)", t: 320, kxy: 61, kz: 61 }, //
+    { mat: "Substrate (Cu)", t: 800, kxy: 393, kz: 393 }, //
+    { mat: "Brazing", t: 200, kxy: 38, kz: 38 } //
   ];
 
   if (tbl && typeof addRow === 'function') { //
