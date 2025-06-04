@@ -13,7 +13,7 @@
  * @param {Object} p  payload from the browser (see ui.html for structure)
  * @return {Object}   results used by ui.html
  */
-function solve(p) {
+function coreSolve(p) {
 
   const RTH_LIMIT = 100; // abort if cumulative Rth exceeds this
 
@@ -170,6 +170,53 @@ function solve(p) {
     rCoolPerDie: rCool, // ADDED: Pass per-die cooler resistance to client
     rStack      // Send cumulative stack Rth back for percentage calculations
   };
+}
+
+function computeSensitivity(p, baseR) {
+  var frac = 0.01;
+  var layerSens = p.layers.map(function(L, idx) {
+    var res = {};
+    ['t','kx','ky','kz'].forEach(function(par){
+      var delta = (L[par] || 0) * frac || frac;
+      var plus = JSON.parse(JSON.stringify(p));
+      plus.sensitivity = false;
+      plus.layers[idx][par] = L[par] + delta;
+      var minus = JSON.parse(JSON.stringify(p));
+      minus.sensitivity = false;
+      minus.layers[idx][par] = Math.max(L[par] - delta, 1e-9);
+      var rPlus = coreSolve(plus).rDie;
+      var rMinus = coreSolve(minus).rDie;
+      res[par] = ((rPlus - rMinus) / (2 * delta)) * (L[par] / baseR);
+    });
+    return res;
+  });
+
+  var cooler = null;
+  if (p.coolerMode === 'conv') {
+    var deltaC = (p.hConv || 0) * frac || frac;
+    var plusC = Object.assign({}, p, { hConv: p.hConv + deltaC, sensitivity:false });
+    var minusC = Object.assign({}, p, { hConv: Math.max(p.hConv - deltaC, 1e-9), sensitivity:false });
+    var rPlusC = coreSolve(plusC).rDie;
+    var rMinusC = coreSolve(minusC).rDie;
+    cooler = { hConv: ((rPlusC - rMinusC) / (2 * deltaC)) * (p.hConv / baseR) };
+  } else if (p.coolerMode === 'direct') {
+    var deltaD = (p.coolerRth || 0) * frac || frac;
+    var plusD = Object.assign({}, p, { coolerRth: p.coolerRth + deltaD, sensitivity:false });
+    var minusD = Object.assign({}, p, { coolerRth: Math.max(p.coolerRth - deltaD, 1e-9), sensitivity:false });
+    var rPlusD = coreSolve(plusD).rDie;
+    var rMinusD = coreSolve(minusD).rDie;
+    cooler = { coolerRth: ((rPlusD - rMinusD) / (2 * deltaD)) * (p.coolerRth / baseR) };
+  }
+
+  return { layers: layerSens, cooler: cooler };
+}
+
+function solve(p) {
+  var base = coreSolve(p);
+  if (p && p.sensitivity) {
+    base.sensitivity = computeSensitivity(p, base.rDie);
+  }
+  return base;
 }
 
 /* ==================== Monte Carlo solver ==================== */
