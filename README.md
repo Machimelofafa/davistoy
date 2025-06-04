@@ -24,6 +24,8 @@ After deployment you will receive a web app URL. Visiting that URL loads `index.
 2. Add material layers in the table.
 3. Click **Run** to calculate thermal resistance.
 4. Use **Monte Carlo** to simulate uncertainty; adjust iterations and deviation in the Monte Carlo section.
+5. Hover over form labels to view tooltips explaining the parameters.
+6. Tooltips on the results table and graphs explain the values shown.
 
 ## Contributing
 

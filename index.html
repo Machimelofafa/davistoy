@@ -22,8 +22,13 @@
     <table id="layerTbl">
       <thead>
         <tr>
-          <th>#</th><th>Material</th><th>t&nbsp;[µm]</th>
-          <th>k<sub>x</sub>[W/(m.K)]</th><th>k<sub>y</sub>[W/(m.K)]</th><th>k<sub>z</sub>[W/(m.K)]</th><th></th>
+          <th>#</th>
+          <th title="Material name or description">Material</th>
+          <th title="Layer thickness in micrometers">t&nbsp;[µm]</th>
+          <th title="Thermal conductivity along the X axis">k<sub>x</sub>[W/(m.K)]</th>
+          <th title="Thermal conductivity along the Y axis">k<sub>y</sub>[W/(m.K)]</th>
+          <th title="Thermal conductivity through thickness">k<sub>z</sub>[W/(m.K)]</th>
+          <th></th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -41,15 +46,24 @@
     <p id="outTotal" class="small">Total stack (all dies) = – °C/W</p>
 
     <div class="flexBox">
-      <div id="cone" class="coneBox"></div><!-- 2‑D cone -->
+      <div id="cone" class="coneBox" title="2‑D view of heat spreading through the stack"></div><!-- 2‑D cone -->
 
       <div class="sumBox flexInner"><!-- summary table + curve -->
-        <table id="sumTbl">
-          <thead><tr><th>Layer</th><th>Rth (total stack) [°C/W]</th><th>Cumulative Rth (total stack) [°C/W]</th><th>Length (Y) at bottom [mm]</th><th>Contribution [%]</th><th>Sensitivity index [%]</th></tr></thead>
+        <table id="sumTbl" title="Thermal resistance summary by layer">
+          <thead>
+            <tr>
+              <th title="Layer number in the stack">Layer</th>
+              <th title="Thermal resistance for this layer considering all dies">Rth (total stack) [°C/W]</th>
+              <th title="Cumulative resistance up to this layer">Cumulative Rth (total stack) [°C/W]</th>
+              <th title="Length of the heat path at the bottom of this layer">Length (Y) at bottom [mm]</th>
+              <th title="Percent share of this layer in the total stack resistance">Contribution [%]</th>
+              <th title="Sensitivity magnitude based on parameter perturbation">Sensitivity index [%]</th>
+            </tr>
+          </thead>
           <tbody></tbody>
         </table>
         <button id="btnExport" style="margin-top:6px">Export CSV</button>
-        <svg id="cumSvg"></svg>
+        <svg id="cumSvg" title="Plot of cumulative resistance versus layer"></svg>
       </div>
     </div>
   </section>
@@ -57,7 +71,7 @@
   <section class="card result" id="mcResult" style="display:none">
     <h2>Monte Carlo Results</h2>
     <p id="mcStats"></p>
-    <svg id="histSvg"></svg>
+    <svg id="histSvg" title="Histogram of Monte Carlo simulation results"></svg>
   </section>
 
   <!-- front‑end JS -->
