@@ -13,8 +13,6 @@ const outDie = $('outDie'), outTot = $('outTotal'); //
 const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
 const resultCard = $('resultCard'); //
 const btnExport = $('btnExport'); //
-const btnSaveStack = $('btnSaveStack'); //
-const btnLoadStack = $('btnLoadStack'); //
 const btnMonte = $('btnMonte'); //
 const btnOptimize = $('btnOptimize'); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
@@ -504,57 +502,6 @@ function exportResults() { //
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0); //
 }
 
-/* ======================= Save / Load JSON ======================= */
-function saveStack() { //
-  const rows = [...tbl.tBodies[0].rows]; //
-  if (!rows.length) { //
-    alert('Add a layer first'); //
-    return; //
-  }
-  const layers = rows.map(r => ({ //
-    mat: r.cells[1].firstElementChild.value, //
-    t:   +r.cells[2].firstElementChild.value, //
-    kx:  +r.cells[3].firstElementChild.value, //
-    ky:  +r.cells[4].firstElementChild.value, //
-    kz:  +r.cells[5].firstElementChild.value //
-  }));
-  const payload = { //
-    srcLen: +srcLen.value, //
-    srcWid: +srcWid.value, //
-    dies:   +dies.value, //
-    coolerMode: coolSel.value, //
-    coolerRth:  +coolRth.value, //
-    hConv:      +hConv.value, //
-    layers //
-  };
-
-  google.script.run
-    .withSuccessHandler(() => alert('Stack saved'))
-    .withFailureHandler(err => { alert('Save failed: ' + err.message); console.error(err); })
-    .setStack(payload);
-}
-
-function loadStack() { //
-  google.script.run
-    .withSuccessHandler(data => { //
-      if (!data) { //
-        alert('No saved stack'); //
-        return; //
-      }
-      srcLen.value = data.srcLen; //
-      srcWid.value = data.srcWid; //
-      dies.value = data.dies; //
-      coolSel.value = data.coolerMode; //
-      updateCoolerVisibility(); //
-      coolRth.value = data.coolerRth; //
-      hConv.value = data.hConv; //
-      tbl.tBodies[0].innerHTML = ''; //
-      if (Array.isArray(data.layers)) data.layers.forEach(l => addRow(l)); //
-    })
-    .withFailureHandler(err => { alert('Load failed: ' + err.message); console.error(err); })
-    .getStack();
-}
-
 /* ======================= Initial setup ======================= */
 document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow(); //
@@ -562,8 +509,6 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (btnMonte) btnMonte.onclick = runMonte; //
   if (btnOptimize) btnOptimize.onclick = runOptimization; //
   if (btnExport) btnExport.onclick = exportResults; //
-  if (btnSaveStack) btnSaveStack.onclick = saveStack; //
-  if (btnLoadStack) btnLoadStack.onclick = loadStack; //
   if (coolSel) coolSel.onchange = updateCoolerVisibility; //
 
   if (srcLen) srcLen.value = '5'; //
