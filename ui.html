@@ -29,10 +29,10 @@ function addRow(p = {}) { //
   newRow.innerHTML = //
     `<td>${rNo}</td>
      <td><input class="mat" value="${p.mat || ''}"></td>
-     <td><input type="number" value="${p.t || 100}"></td>
-     <td><input type="number" value="${p.kx || 200}"></td>
-     <td><input type="number" value="${p.ky || 200}"></td>
-     <td><input type="number" value="${p.kz || 200}"></td>
+     <td><input type="number" min="0" value="${p.t || 100}"></td>
+     <td><input type="number" min="0" value="${p.kx || 200}"></td>
+     <td><input type="number" min="0" value="${p.ky || 200}"></td>
+     <td><input type="number" min="0" value="${p.kz || 200}"></td>
      <td><button class="trash">🗑️</button></td>`;
   newRow.querySelector('.trash').onclick = e => { //
     e.target.closest('tr').remove(); //
@@ -58,13 +58,35 @@ function runCalc() { //
     alert('Add a layer first'); //
     return; //
   }
-  const layers = rows.map(r => ({ //
-    mat: r.cells[1].firstElementChild.value, //
-    t:   +r.cells[2].firstElementChild.value, //
-    kx:  +r.cells[3].firstElementChild.value, //
-    ky:  +r.cells[4].firstElementChild.value, //
-    kz:  +r.cells[5].firstElementChild.value //
-  }));
+
+  const layers = []; //
+  for (const r of rows) { //
+    const t  = +r.cells[2].firstElementChild.value; //
+    const kx = +r.cells[3].firstElementChild.value; //
+    const ky = +r.cells[4].firstElementChild.value; //
+    const kz = +r.cells[5].firstElementChild.value; //
+    if (t <= 0 || kx <= 0 || ky <= 0 || kz <= 0) { //
+      alert('Layer values must be positive numbers'); //
+      return; //
+    } //
+    layers.push({ //
+      mat: r.cells[1].firstElementChild.value, //
+      t, kx, ky, kz //
+    }); //
+  }
+
+  if (+srcLen.value <= 0 || +srcWid.value <= 0 || +dies.value <= 0) { //
+    alert('Source dimensions and die count must be positive.'); //
+    return; //
+  } //
+  if (coolSel.value === 'direct' && +coolRth.value <= 0) { //
+    alert('Cooler Rth must be positive.'); //
+    return; //
+  } //
+  if (coolSel.value === 'conv' && +hConv.value <= 0) { //
+    alert('Convection coefficient must be positive.'); //
+    return; //
+  }
 
   if(btnRun) btnRun.disabled = true; //
   if(resultCard) resultCard.style.display = 'none';  //
