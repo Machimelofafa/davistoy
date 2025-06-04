@@ -13,6 +13,9 @@ const outDie = $('outDie'), outTot = $('outTotal'); //
 const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
 const resultCard = $('resultCard'); //
 const btnExport = $('btnExport'); //
+const btnMonte = $('btnMonte'); //
+const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
+const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
@@ -87,9 +90,50 @@ function runCalc() { //
     });
 }
 
+function runMonte() { //
+  const rows = [...tbl.tBodies[0].rows]; //
+  if (!rows.length) { //
+    alert('Add a layer first'); //
+    return; //
+  }
+  const layers = rows.map(r => ({ //
+    mat: r.cells[1].firstElementChild.value, //
+    t:   +r.cells[2].firstElementChild.value, //
+    kx:  +r.cells[3].firstElementChild.value, //
+    ky:  +r.cells[4].firstElementChild.value, //
+    kz:  +r.cells[5].firstElementChild.value //
+  }));
+
+  if(btnMonte) btnMonte.disabled = true; //
+  if(mcCard) mcCard.style.display = 'none'; //
+
+  google.script.run //
+    .withSuccessHandler(res => { //
+      drawMonte(res); //
+      if(btnMonte) btnMonte.disabled = false; //
+    })
+    .withFailureHandler(err => { //
+      alert('Error calculating: ' + err.message); //
+      console.error('Monte Carlo error:', err); //
+      if(btnMonte) btnMonte.disabled = false; //
+    })
+    .solveMonteCarlo({ //
+      srcLen: +srcLen.value,
+      srcWid: +srcWid.value,
+      dies:   +dies.value,
+      coolerMode: coolSel.value,
+      coolerRth:  +coolRth.value,
+      hConv:      +hConv.value,
+      iterations: +mcIter.value,
+      uncT:       +mcUncT.value / 100,
+      uncK:       +mcUncK.value / 100,
+      layers
+    });
+}
+
 /* ======================= Main render ======================= */
 // MODIFICATION: o will now contain o.rCoolPerDie
-function draw(o) { 
+function draw(o) {
   // MODIFICATION: Check for new properties including o.rCoolPerDie
   if (!o || typeof o.rDie === 'undefined' || typeof o.numDies === 'undefined' || !o.lengths || typeof o.rCoolPerDie === 'undefined' || typeof o.rTotal === 'undefined') { //
     console.error('Invalid data received for drawing:', o); //
@@ -107,6 +151,17 @@ function draw(o) {
   if (resultCard) { //
     resultCard.style.display = '';  //
   }
+}
+
+function drawMonte(o) {
+  if (!o || !Array.isArray(o.results)) {
+    console.error('Invalid Monte Carlo data:', o);
+    alert('Failed Monte Carlo calculation.');
+    return;
+  }
+  mcStats.textContent = `n=${o.iterations}, mean=${o.mean.toFixed(3)}\u00A0\xB0C/W, \u03C3=${o.stdev.toFixed(3)}`;
+  buildHistogram(o.results);
+  if (mcCard) mcCard.style.display = '';
 }
 
 /* ======================= 2‑D cone (SVG) ======================= */
@@ -324,6 +379,36 @@ function buildCurve(cumulativeRth) { //
   }
 }
 
+function buildHistogram(vals) {
+  histSvg.innerHTML = '';
+  if (!vals || vals.length === 0) return;
+  const bins = 10;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const step = (max - min) / bins || 1;
+  const counts = Array(bins).fill(0);
+  vals.forEach(v => {
+    let idx = Math.floor((v - min) / step);
+    if (idx >= bins) idx = bins - 1;
+    counts[idx]++;
+  });
+  const W = 260, H = 140;
+  const margin = { left: 40, right: 10, top: 10, bottom: 30 };
+  const plotW = W - margin.left - margin.right;
+  const plotH = H - margin.top - margin.bottom;
+  const maxC = Math.max(...counts);
+  histSvg.setAttribute('width', W);
+  histSvg.setAttribute('height', H);
+  histSvg.appendChild(NS('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: H - margin.bottom, stroke: '#888', 'stroke-width': '1' }));
+  histSvg.appendChild(NS('line', { x1: margin.left, y1: H - margin.bottom, x2: W - margin.right, y2: H - margin.bottom, stroke: '#888', 'stroke-width': '1' }));
+  const barW = plotW / bins;
+  counts.forEach((c,i)=>{
+    const h = maxC > 0 ? (c / maxC) * plotH : 0;
+    const x = margin.left + i * barW;
+    const y = margin.top + (plotH - h);
+    histSvg.appendChild(NS('rect', { x, y, width: barW - 1, height: h, fill: '#4FC3F7' }));
+  });
+}
 /* ======================= SVG helper ======================= */
 function NS(tag, attrs) { //
   const el = document.createElementNS('http://www.w3.org/2000/svg', tag); //
@@ -355,6 +440,7 @@ function exportResults() { //
 document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow(); //
   if (btnRun) btnRun.onclick = runCalc; //
+  if (btnMonte) btnMonte.onclick = runMonte; //
   if (btnExport) btnExport.onclick = exportResults; //
   if (coolSel) coolSel.onchange = updateCoolerVisibility; //
 
@@ -364,6 +450,9 @@ document.addEventListener('DOMContentLoaded', () => { //
 
   if (coolSel) coolSel.value = 'conv';  //
   if (coolRth) coolRth.value = '0.30';    //
+  if (mcIter) mcIter.value = '200'; //
+  if (mcUncT) mcUncT.value = '5'; //
+  if (mcUncK) mcUncK.value = '5'; //
 
   const initialLayers = [ //
     { mat: "Die attach", t: 30, kx: 198, ky: 198, kz: 198 }, //
@@ -384,6 +473,7 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (resultCard) { //
     resultCard.style.display = 'none'; //
   }
+  if (mcCard) mcCard.style.display = 'none'; //
 });
 
 </script>
