@@ -14,8 +14,10 @@ const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); 
 const resultCard = $('resultCard'); //
 const btnExport = $('btnExport'); //
 const btnMonte = $('btnMonte'); //
+const btnOptimize = $('btnOptimize'); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
 const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
+const optCard = $('optResult'), optOut = $('optOut'); //
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
@@ -131,6 +133,44 @@ function runMonte() { //
     });
 }
 
+function runOptimization() { //
+  const rows = [...tbl.tBodies[0].rows]; //
+  if (!rows.length) { //
+    alert('Add a layer first'); //
+    return; //
+  }
+  const layers = rows.map(r => ({ //
+    mat: r.cells[1].firstElementChild.value, //
+    t:   +r.cells[2].firstElementChild.value, //
+    kx:  +r.cells[3].firstElementChild.value, //
+    ky:  +r.cells[4].firstElementChild.value, //
+    kz:  +r.cells[5].firstElementChild.value //
+  }));
+
+  if(btnOptimize) btnOptimize.disabled = true; //
+  if(optCard) optCard.style.display = 'none'; //
+
+  google.script.run //
+    .withSuccessHandler(res => { //
+      showOptimization(res); //
+      if(btnOptimize) btnOptimize.disabled = false; //
+    })
+    .withFailureHandler(err => { //
+      alert('Error optimizing: ' + err.message); //
+      console.error('Optimization error:', err); //
+      if(btnOptimize) btnOptimize.disabled = false; //
+    })
+    .optimizeLayers({ //
+      srcLen: +srcLen.value,
+      srcWid: +srcWid.value,
+      dies:   +dies.value,
+      coolerMode: coolSel.value,
+      coolerRth:  +coolRth.value,
+      hConv:      +hConv.value,
+      layers
+    });
+}
+
 /* ======================= Main render ======================= */
 // MODIFICATION: o will now contain o.rCoolPerDie
 function draw(o) {
@@ -162,6 +202,32 @@ function drawMonte(o) {
   mcStats.textContent = `n=${o.iterations}, mean=${o.mean.toFixed(3)}\u00A0\xB0C/W, \u03C3=${o.stdev.toFixed(3)}`;
   buildHistogram(o.results);
   if (mcCard) mcCard.style.display = '';
+}
+
+function showOptimization(o) {
+  if (!o || !Array.isArray(o.recommendations)) {
+    console.error('Invalid optimization data:', o);
+    alert('Failed optimization.');
+    return;
+  }
+  if (optOut) optOut.innerHTML = '';
+  const list = document.createElement('ul');
+  o.recommendations.forEach(r => {
+    const li = document.createElement('li');
+    if (r && typeof r.thickness === 'number') {
+      li.textContent = `Layer ${r.layer}: ${r.thickness.toFixed(2)} \u00B5m`;
+    }
+    list.appendChild(li);
+  });
+  if (optOut) {
+    optOut.appendChild(list);
+    if (typeof o.rDie === 'number' && isFinite(o.rDie)) {
+      const p = document.createElement('p');
+      p.textContent = `Estimated Rth / die = ${o.rDie.toFixed(3)} \u00B0C/W`;
+      optOut.appendChild(p);
+    }
+  }
+  if (optCard) optCard.style.display = '';
 }
 
 /* ======================= 2‑D cone (SVG) ======================= */
@@ -441,6 +507,7 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow(); //
   if (btnRun) btnRun.onclick = runCalc; //
   if (btnMonte) btnMonte.onclick = runMonte; //
+  if (btnOptimize) btnOptimize.onclick = runOptimization; //
   if (btnExport) btnExport.onclick = exportResults; //
   if (coolSel) coolSel.onchange = updateCoolerVisibility; //
 
@@ -474,6 +541,7 @@ document.addEventListener('DOMContentLoaded', () => { //
     resultCard.style.display = 'none'; //
   }
   if (mcCard) mcCard.style.display = 'none'; //
+  if (optCard) optCard.style.display = 'none'; //
 });
 
 </script>
