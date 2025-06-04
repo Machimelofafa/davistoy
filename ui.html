@@ -13,9 +13,13 @@ const outDie = $('outDie'), outTot = $('outTotal'); //
 const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
 const resultCard = $('resultCard'); //
 const btnExport = $('btnExport'); //
-const btnMonte = $('btnMonte'); //
+const btnMonteCarlo = $('btnMonteCarlo'); //
+const btnOptimize = $('btnOptimize'); //
+const btnMaterials = $('btnMaterials'); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
 const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
+const optCard = $('optResult'), optSummary = $('optSummary'), optTbl = $('optTbl'); //
+const matCard = $('matResult'), matTbl = $('matTbl'); //
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
@@ -90,7 +94,7 @@ function runCalc() { //
     });
 }
 
-function runMonte() { //
+function runMonteCarloAnalysis() { //
   const rows = [...tbl.tBodies[0].rows]; //
   if (!rows.length) { //
     alert('Add a layer first'); //
@@ -104,18 +108,18 @@ function runMonte() { //
     kz:  +r.cells[5].firstElementChild.value //
   }));
 
-  if(btnMonte) btnMonte.disabled = true; //
+  if(btnMonteCarlo) btnMonteCarlo.disabled = true; //
   if(mcCard) mcCard.style.display = 'none'; //
 
   google.script.run //
     .withSuccessHandler(res => { //
       drawMonte(res); //
-      if(btnMonte) btnMonte.disabled = false; //
+      if(btnMonteCarlo) btnMonteCarlo.disabled = false; //
     })
     .withFailureHandler(err => { //
       alert('Error calculating: ' + err.message); //
       console.error('Monte Carlo error:', err); //
-      if(btnMonte) btnMonte.disabled = false; //
+      if(btnMonteCarlo) btnMonteCarlo.disabled = false; //
     })
     .solveMonteCarlo({ //
       srcLen: +srcLen.value,
@@ -129,6 +133,82 @@ function runMonte() { //
       uncK:       +mcUncK.value / 100,
       layers
     });
+}
+
+function runOptimization() { //
+  const rows = [...tbl.tBodies[0].rows]; //
+  if (!rows.length) { //
+    alert('Add a layer first'); //
+    return; //
+  }
+  const layers = rows.map(r => ({ //
+    mat: r.cells[1].firstElementChild.value, //
+    t:   +r.cells[2].firstElementChild.value, //
+    kx:  +r.cells[3].firstElementChild.value, //
+    ky:  +r.cells[4].firstElementChild.value, //
+    kz:  +r.cells[5].firstElementChild.value //
+  }));
+
+  if(btnOptimize) btnOptimize.disabled = true; //
+  if(optCard) optCard.style.display = 'none'; //
+
+  google.script.run //
+    .withSuccessHandler(res => { //
+      drawOptimization(res); //
+      if(btnOptimize) btnOptimize.disabled = false; //
+    }) //
+    .withFailureHandler(err => { //
+      alert('Error optimizing: ' + err.message); //
+      console.error('Optimization error:', err); //
+      if(btnOptimize) btnOptimize.disabled = false; //
+    }) //
+    .optimizeThicknesses({ //
+      srcLen: +srcLen.value, //
+      srcWid: +srcWid.value, //
+      dies:   +dies.value, //
+      coolerMode: coolSel.value, //
+      coolerRth:  +coolRth.value, //
+      hConv:      +hConv.value, //
+      layers //
+    }); //
+}
+
+function runMaterialAnalysis() { //
+  const rows = [...tbl.tBodies[0].rows]; //
+  if (!rows.length) { //
+    alert('Add a layer first'); //
+    return; //
+  }
+  const layers = rows.map(r => ({ //
+    mat: r.cells[1].firstElementChild.value, //
+    t:   +r.cells[2].firstElementChild.value, //
+    kx:  +r.cells[3].firstElementChild.value, //
+    ky:  +r.cells[4].firstElementChild.value, //
+    kz:  +r.cells[5].firstElementChild.value //
+  }));
+
+  if(btnMaterials) btnMaterials.disabled = true; //
+  if(matCard) matCard.style.display = 'none'; //
+
+  google.script.run //
+    .withSuccessHandler(res => { //
+      drawMaterials(res); //
+      if(btnMaterials) btnMaterials.disabled = false; //
+    }) //
+    .withFailureHandler(err => { //
+      alert('Error analyzing materials: ' + err.message); //
+      console.error('Material analysis error:', err); //
+      if(btnMaterials) btnMaterials.disabled = false; //
+    }) //
+    .analyzeMaterialSubstitution({ //
+      srcLen: +srcLen.value, //
+      srcWid: +srcWid.value, //
+      dies:   +dies.value, //
+      coolerMode: coolSel.value, //
+      coolerRth:  +coolRth.value, //
+      hConv:      +hConv.value, //
+      layers //
+    }); //
 }
 
 /* ======================= Main render ======================= */
@@ -162,6 +242,35 @@ function drawMonte(o) {
   mcStats.textContent = `n=${o.iterations}, mean=${o.mean.toFixed(3)}\u00A0\xB0C/W, \u03C3=${o.stdev.toFixed(3)}`;
   buildHistogram(o.results);
   if (mcCard) mcCard.style.display = '';
+}
+
+function drawOptimization(o) {
+  if (!o || !Array.isArray(o.recommendations)) {
+    console.error('Invalid optimization data:', o);
+    alert('Optimization failed.');
+    return;
+  }
+  optSummary.textContent = `Initial ${o.rDieStart.toFixed(3)}\u00A0\xB0C/W \u2192 Optimized ${o.rDieOptimized.toFixed(3)}\u00A0\xB0C/W`;
+  optTbl.innerHTML = '<tr><th>Layer</th><th>t original [µm]</th><th>t optimized [µm]</th></tr>';
+  o.recommendations.forEach(r => {
+    const row = optTbl.insertRow();
+    row.innerHTML = `<td>L${r.layer}</td><td>${r.tOriginal.toFixed(2)}</td><td>${r.tOptimized.toFixed(2)}</td>`;
+  });
+  if (optCard) optCard.style.display = '';
+}
+
+function drawMaterials(o) {
+  if (!o || !Array.isArray(o.suggestions)) {
+    console.error('Invalid material analysis:', o);
+    alert('Material analysis failed.');
+    return;
+  }
+  matTbl.innerHTML = '<tr><th>Layer</th><th>Material</th><th>New Rth [°C/W]</th><th>Improvement</th><th>Cost</th><th>Ratio</th></tr>';
+  o.suggestions.forEach(s => {
+    const row = matTbl.insertRow();
+    row.innerHTML = `<td>L${s.layer}</td><td>${s.material}</td><td>${s.newRth.toFixed(3)}</td><td>${s.improvement.toFixed(3)}</td><td>${s.costFactor}</td><td>${s.ratio.toFixed(3)}</td>`;
+  });
+  if (matCard) matCard.style.display = '';
 }
 
 /* ======================= 2‑D cone (SVG) ======================= */
@@ -440,7 +549,9 @@ function exportResults() { //
 document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow(); //
   if (btnRun) btnRun.onclick = runCalc; //
-  if (btnMonte) btnMonte.onclick = runMonte; //
+  if (btnMonteCarlo) btnMonteCarlo.onclick = runMonteCarloAnalysis; //
+  if (btnOptimize) btnOptimize.onclick = runOptimization; //
+  if (btnMaterials) btnMaterials.onclick = runMaterialAnalysis; //
   if (btnExport) btnExport.onclick = exportResults; //
   if (coolSel) coolSel.onchange = updateCoolerVisibility; //
 
@@ -474,6 +585,8 @@ document.addEventListener('DOMContentLoaded', () => { //
     resultCard.style.display = 'none'; //
   }
   if (mcCard) mcCard.style.display = 'none'; //
+  if (optCard) optCard.style.display = 'none'; //
+  if (matCard) matCard.style.display = 'none'; //
 });
 
 </script>

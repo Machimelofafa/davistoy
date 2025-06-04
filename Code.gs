@@ -239,6 +239,121 @@ function solveMonteCarlo(p) {
   };
 }
 
+/* ==================== Thickness optimization ==================== */
+function optimizeThicknesses(p) {
+  if (!Array.isArray(p.layers) || p.layers.length === 0) {
+    throw new Error('No layers provided');
+  }
+  let base;
+  try {
+    base = solve(p);
+  } catch (err) {
+    throw new Error('Invalid starting configuration: ' + err.message);
+  }
+
+  let current = p.layers.map(l => Object.assign({}, l));
+  let bestR = base.rDie;
+  let bestLayers = current.map(l => Object.assign({}, l));
+  const maxIter = 20;
+  const lr = 0.2;
+  const eps = 1e-4;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    const grads = [];
+    for (let i = 0; i < current.length; i++) {
+      const dt = Math.max(1, current[i].t * 0.05);
+      const orig = current[i].t;
+      current[i].t = orig + dt;
+      let plus;
+      try { plus = solve(Object.assign({}, p, { layers: current })); }
+      catch (e) { plus = { rDie: Infinity }; }
+      current[i].t = Math.max(0.01, orig - dt);
+      let minus;
+      try { minus = solve(Object.assign({}, p, { layers: current })); }
+      catch (e) { minus = { rDie: Infinity }; }
+      current[i].t = orig;
+      grads[i] = (plus.rDie - minus.rDie) / (2 * dt);
+    }
+
+    const proposed = current.map((l, i) => ({
+      kx: l.kx, ky: l.ky, kz: l.kz,
+      mat: l.mat,
+      t: Math.max(0.1, l.t - lr * grads[i])
+    }));
+
+    let res;
+    try { res = solve(Object.assign({}, p, { layers: proposed })); }
+    catch (err) { break; }
+
+    if (res.rDie < bestR - eps) {
+      bestR = res.rDie;
+      bestLayers = proposed.map(o => Object.assign({}, o));
+      current = proposed;
+    } else {
+      break;
+    }
+  }
+
+  const recs = bestLayers.map((l, i) => ({
+    layer: i + 1,
+    tOriginal: p.layers[i].t,
+    tOptimized: l.t
+  }));
+
+  return {
+    rDieStart: base.rDie,
+    rDieOptimized: bestR,
+    recommendations: recs
+  };
+}
+
+/* ==================== Material substitution ==================== */
+function analyzeMaterialSubstitution(p) {
+  const db = {
+    'Copper':   {kx:393, ky:393, kz:393, costFactor:3.5,  maxTemp:200},
+    'Aluminum': {kx:205, ky:205, kz:205, costFactor:1.0,  maxTemp:150},
+    'Silver':   {kx:419, ky:419, kz:419, costFactor:15.0, maxTemp:250},
+    'Diamond':  {kx:2000,ky:2000,kz:2000,costFactor:100.0,maxTemp:400},
+    'Silicon':  {kx:148, ky:148, kz:148, costFactor:2.0,  maxTemp:300},
+    'Graphite': {kx:150, ky:150, kz:1000,costFactor:5.0,  maxTemp:350},
+    'TIM Standard': {kx:5, ky:5, kz:5, costFactor:8.0, maxTemp:200},
+    'TIM Premium':  {kx:15,ky:15,kz:15,costFactor:25.0,maxTemp:250}
+  };
+
+  if (!Array.isArray(p.layers) || p.layers.length === 0) {
+    throw new Error('No layers provided');
+  }
+
+  let base;
+  try { base = solve(p); } catch (err) { throw new Error('Invalid configuration'); }
+
+  const suggestions = [];
+
+  p.layers.forEach((layer, idx) => {
+    for (const [name, mat] of Object.entries(db)) {
+      const modified = p.layers.map((l, i) => i === idx ? Object.assign({}, l, { kx: mat.kx, ky: mat.ky, kz: mat.kz }) : Object.assign({}, l));
+      let res;
+      try { res = solve(Object.assign({}, p, { layers: modified })); }
+      catch (err) { continue; }
+      if (!isFinite(res.rDie)) continue;
+      const improvement = base.rDie - res.rDie;
+      if (improvement <= 0) continue;
+      suggestions.push({
+        layer: idx + 1,
+        material: name,
+        newRth: res.rDie,
+        improvement,
+        costFactor: mat.costFactor,
+        ratio: improvement / mat.costFactor
+      });
+    }
+  });
+
+  suggestions.sort((a,b)=> b.ratio - a.ratio);
+
+  return { baseRth: base.rDie, suggestions };
+}
+
 /* ====================================================================================================
    UI bootstrap helpers (doGet, inc) - These functions remain unchanged.
    ==================================================================================================== */
