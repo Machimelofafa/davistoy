@@ -206,6 +206,7 @@ function coreSolve(p) {
     for (let j=i+1;j<N;j++) {
       const d_ij = distanceInMeters(coords[i], coords[j]);
       let R_ij = 0;
+      let anyOverlap = false;
       for (let l=0; l<numLayers; l++) {
         const r_i = 0.5 * Math.hypot(widthsX_list[i][l + 1],
                                      widthsY_list[i][l + 1]);
@@ -214,13 +215,11 @@ function coreSolve(p) {
         const area = circleOverlap(r_i, r_j, d_ij);
         if (area > 0) {
           const R_l  = (p.layers[l].t * 1e-6) / (p.layers[l].kxy * area);
+          anyOverlap = true;
           R_ij += R_l;
-        } else {
-          R_ij = Infinity;
-          break;
         }
       }
-      if (R_ij < Infinity) {
+      if (anyOverlap) {
         const gij = 1/R_ij;
         G[i][i] += gij; G[j][j] += gij; G[i][j] -= gij; G[j][i] -= gij;
       }
