@@ -14,7 +14,6 @@
  * @return {Object}   results used by ui.html
  */
 function coreSolve(p) {
-
   const RTH_LIMIT = 100; // abort if cumulative Rth exceeds this
 
   // Validate payload structure
@@ -58,107 +57,90 @@ function coreSolve(p) {
     });
   });
 
-  /* ---------- initial footprint (m) ----------------------------- */
-  let len = p.srcLen / 1000;   // depth  (Y)  — mm → m
-  let wid = p.srcWid / 1000;   // width  (X)
+  function solveOne(p1) {
+    let len = p1.srcLen / 1000;
+    let wid = p1.srcWid / 1000;
 
-  /* ---------- accumulators -------------------------------------- */
-  const rEach   = [];          // individual Ri for each original layer
-  const rCum    = [];          // cumulative Ri after each original layer
-  
-  const lengths = [len];       // Isotropic length (Y) after each layer (starts with initial)
-  const widths  = [wid];       // Isotropic width (X) after each layer (starts with initial)
+    const rEach = [];
+    const rCum  = [];
+    const lengths = [len];
+    const widths  = [wid];
+    const widthsX = [wid];
+    const widthsY = [len];
 
-  const widthsX = [wid];       // Anisotropic width (X) after each layer (starts with initial)
-  const widthsY = [len];       // Anisotropic length (Y) after each layer (starts with initial)
+    p1.layers.forEach(L => {
+      let current_layer_total_R = 0;
+      const layer_thickness_in_microns = L.t;
 
-  /* ---------- layer loop ---------------------------------------- */
-  p.layers.forEach(L => { //
-    let current_layer_total_R = 0; //
-    const layer_thickness_in_microns = L.t; //
+      const ratioIso = L.kxy / L.kz;
+      const tanIso   = Math.tan(Math.atan(Math.sqrt(ratioIso)));
+      const tanXY    = Math.tan(Math.atan(Math.sqrt(L.kxy / L.kz)));
 
-    // Pre-compute α angles and their tangents for this layer
-    const ratioIso = L.kxy / L.kz;
-    const alphaIso = Math.atan(Math.sqrt(ratioIso));
-    const tanIso   = Math.tan(alphaIso);
+      let slice_iter_len_iso = len;
+      let slice_iter_wid_iso = wid;
+      let slice_iter_widX_aniso = widthsX[widthsX.length - 1];
+      let slice_iter_widY_aniso = widthsY[widthsY.length - 1];
 
-    const alphaXY = Math.atan(Math.sqrt(L.kxy / L.kz));
-    const tanXY   = Math.tan(alphaXY);
+      if (layer_thickness_in_microns > 0) {
+        const step_um = Math.max(1, layer_thickness_in_microns / 100);
+        for (let processed = 0; processed < layer_thickness_in_microns; processed += step_um) {
+          const slice_um = Math.min(step_um, layer_thickness_in_microns - processed);
+          const t_micro_slice_m = slice_um * 1e-6;
 
-    let slice_iter_len_iso = len; //
-    let slice_iter_wid_iso = wid; //
-    
-    let slice_iter_widX_aniso = widthsX[widthsX.length - 1]; //
-    let slice_iter_widY_aniso = widthsY[widthsY.length - 1]; //
+          const A_slice = slice_iter_len_iso * slice_iter_wid_iso;
+          let Ri_slice = Infinity;
+          if (L.kz > 0 && A_slice > 0) {
+            Ri_slice = t_micro_slice_m / (L.kz * A_slice);
+          }
+          current_layer_total_R += Ri_slice;
+          const runningTotal = (rCum.length > 0 ? rCum[rCum.length - 1] : 0) + current_layer_total_R;
+          if (runningTotal > RTH_LIMIT) {
+            throw new Error('Cumulative Rth exceeds ' + RTH_LIMIT + ' \xB0C/W');
+          }
 
-    if (layer_thickness_in_microns > 0) { //
-      const step_um = Math.max(1, layer_thickness_in_microns / 100); // adaptive step
-      for (let processed = 0; processed < layer_thickness_in_microns; processed += step_um) { //
-        const slice_um = Math.min(step_um, layer_thickness_in_microns - processed); //
-        const t_micro_slice_m = slice_um * 1e-6; //
+          const delta_iso_slice = 2 * t_micro_slice_m * tanIso;
+          slice_iter_len_iso += delta_iso_slice;
+          slice_iter_wid_iso += delta_iso_slice;
 
-        const A_slice = slice_iter_len_iso * slice_iter_wid_iso; //
-        let Ri_slice = Infinity; //
-
-        if (L.kz > 0 && A_slice > 0) { //
-          Ri_slice = t_micro_slice_m / (L.kz * A_slice); //
+          const delta_aniso = 2 * t_micro_slice_m * tanXY;
+          slice_iter_widX_aniso += delta_aniso;
+          slice_iter_widY_aniso += delta_aniso;
         }
-        current_layer_total_R += Ri_slice; //
-        const runningTotal = (rCum.length > 0 ? rCum[rCum.length - 1] : 0) + current_layer_total_R;
-        if (runningTotal > RTH_LIMIT) {
-          throw new Error('Cumulative Rth exceeds ' + RTH_LIMIT + ' \xB0C/W');
-        }
-
-        const delta_iso_slice = 2 * t_micro_slice_m * tanIso;
-        slice_iter_len_iso += delta_iso_slice; //
-        slice_iter_wid_iso += delta_iso_slice; //
-
-        const delta_aniso_X_slice = 2 * t_micro_slice_m * tanXY;
-        const delta_aniso_Y_slice = 2 * t_micro_slice_m * tanXY;
-        slice_iter_widX_aniso += delta_aniso_X_slice; //
-        slice_iter_widY_aniso += delta_aniso_Y_slice; //
+      } else {
+        current_layer_total_R = 0;
       }
-    } else { 
-        current_layer_total_R = 0; //
+
+      rEach.push(current_layer_total_R);
+      const lastRCum = rCum.length > 0 ? rCum[rCum.length - 1] : 0;
+      rCum.push(lastRCum + current_layer_total_R);
+
+      len = slice_iter_len_iso;
+      wid = slice_iter_wid_iso;
+
+      lengths.push(len);
+      widths.push(wid);
+      widthsX.push(slice_iter_widX_aniso);
+      widthsY.push(slice_iter_widY_aniso);
+    });
+
+    let rCool = 0;
+    const final_area_for_cooler = len * wid;
+    if (p1.coolerMode === 'conv') {
+      if (p1.hConv > 0 && final_area_for_cooler > 0) {
+        rCool = 1 / (p1.hConv * final_area_for_cooler);
+      } else {
+        rCool = Infinity;
+      }
+    } else if (p1.coolerMode === 'direct') {
+      rCool = p1.coolerRth;
     }
 
-    rEach.push(current_layer_total_R); //
-    const lastRCum = rCum.length > 0 ? rCum[rCum.length - 1] : 0; //
-    rCum.push(lastRCum + current_layer_total_R); //
+    const rStack = rCum.length > 0 ? rCum[rCum.length - 1] : 0;
+    const rVert = rStack + rCool;
 
-    len = slice_iter_len_iso; //
-    wid = slice_iter_wid_iso; //
-
-    lengths.push(len); //
-    widths.push(wid);  //
-    widthsX.push(slice_iter_widX_aniso); //
-    widthsY.push(slice_iter_widY_aniso); //
-  });
-
-  /* ---------- cooler term --------------------------------------- */
-  let rCool = 0; //
-  const final_area_for_cooler = len * wid; //
-  if (p.coolerMode === 'conv') { //
-    if (p.hConv > 0 && final_area_for_cooler > 0) { //
-        rCool = 1 / (p.hConv * final_area_for_cooler); //
-    } else {
-        rCool = Infinity; //
-    }
-  } else if (p.coolerMode === 'direct') { //
-    rCool = p.coolerRth; //
-  }
-  // If p.coolerMode is 'none', rCool remains 0 as initialized.
-
-  /* ---------- per-die & total ----------------------------------- */
-  const rStack = rCum.length > 0 ? rCum[rCum.length - 1] : 0; //
-  const rVert = rStack + rCool; // vertical path for a single die
-
-  let rTotal = Infinity; // legacy total without coupling
-  if (p.dies > 0) {
-      rTotal = rVert / p.dies;
+    return { rEach, rCum, lengths, widths, widthsX, widthsY, rCool, rStack, rVert };
   }
 
-  /* ---------- thermal coupling network ------------------------- */
   const N = Math.max(1, Math.floor(p.dies));
   function getCoords(layout, n, spacing, custom) {
     const arr = [];
@@ -177,30 +159,63 @@ function coreSolve(p) {
         if (parts.length===2) arr.push([parseFloat(parts[0])||0, parseFloat(parts[1])||0]);
       });
       while (arr.length < n) arr.push([0,0]);
-    } else { // line
+    } else {
       for (let i=0;i<n;i++) arr.push([i*s,0]);
     }
     return arr.slice(0,n);
   }
 
   const coords = getCoords(p.layout, N, p.spacing, p.coords);
-  const Ga = rVert > 0 ? 1/rVert : 0;
-  const totalThick = p.layers.reduce((a,L)=>a + L.t*1e-6,0);
-  const kCouple = p.layers[0] ? p.layers[0].kxy : 1;
-  const crossArea = totalThick * wid; // rough approximation
+
+  const R_stack_self = [];
+  const R_cooler_self = [];
+  const widthsX_list = [];
+  const widthsY_list = [];
+
+  let tplResult = null;
+  for (let i = 0; i < N; i++) {
+    const p_i = Object.assign({}, p, { dies: 1 });
+    const res_i = solveOne(p_i);
+    if (i === 0) tplResult = res_i;
+    R_stack_self[i] = res_i.rStack;
+    R_cooler_self[i] = res_i.rCool;
+    widthsX_list[i] = res_i.widthsX;
+    widthsY_list[i] = res_i.widthsY;
+  }
+
+  function distanceInMeters(a,b){
+    const dx = (a[0]-b[0]) / 1000;
+    const dy = (a[1]-b[1]) / 1000;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  const numLayers = p.layers.length;
   const G = Array.from({length:N},()=>Array(N).fill(0));
   for (let i=0;i<N;i++) {
     for (let j=i+1;j<N;j++) {
-      const dx = (coords[i][0]-coords[j][0]) / 1000;
-      const dy = (coords[i][1]-coords[j][1]) / 1000;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist>0 && crossArea>0 && kCouple>0) {
-        const Rl = dist/(kCouple*crossArea);
-        const gij = 1/Rl;
+      const d_ij = distanceInMeters(coords[i], coords[j]);
+      let R_ij = 0;
+      for (let l=0; l<numLayers; l++) {
+        const r_i = 0.5 * Math.hypot(widthsX_list[i][l], widthsY_list[i][l]);
+        const r_j = 0.5 * Math.hypot(widthsX_list[j][l], widthsY_list[j][l]);
+        if (d_ij < r_i + r_j) {
+          const overlap = r_i + r_j - d_ij;
+          const A_l  = overlap * (p.layers[l].t * 1e-6);
+          const R_l  = (p.layers[l].t * 1e-6) / (p.layers[l].kxy * A_l);
+          R_ij += R_l;
+        } else {
+          R_ij = Infinity;
+          break;
+        }
+      }
+      if (R_ij < Infinity) {
+        const gij = 1/R_ij;
         G[i][i] += gij; G[j][j] += gij; G[i][j] -= gij; G[j][i] -= gij;
       }
     }
-    G[i][i] += Ga;
+    const rVert_i = R_stack_self[i] + R_cooler_self[i];
+    const Ga_i = rVert_i > 0 ? 1/rVert_i : 0;
+    G[i][i] += Ga_i;
   }
 
   function solveMatrix(A,b){
@@ -222,9 +237,8 @@ function coreSolve(p) {
   const maxTemp = Math.max.apply(null, temps.filter(v=>typeof v==='number'));
   const avgTemp = temps.reduce((a,b)=>a+b,0)/temps.length;
   const rDie = maxTemp;
-  rTotal = maxTemp/ N;
+  const rTotal = maxTemp / N;
 
-  // build full resistance matrix via unit heat inputs
   function buildResistanceMatrix(M){
     const n=M.length;
     const res=[];
@@ -238,27 +252,27 @@ function coreSolve(p) {
   const rMatrix = buildResistanceMatrix(G);
   const rPerDie = rMatrix.map((row,i)=> row[i]);
 
-  /* ---------- back to the browser ------------------------------- */
+  const { rEach, rCum, lengths, widths, widthsX, widthsY, rCool, rStack } = tplResult;
+
   return {
-    rEach,      // Array of R_th for each layer (per-die stack component)
-    rCum,       // Array of cumulative R_th after each layer (per-die stack component)
-    widths,     // Array of isotropic widths (X) after each layer (including initial)
-    lengths,    // Array of isotropic lengths (Y) after each layer (including initial)
-    widthsX,    // Array of anisotropic widths (X) after each layer (including initial)
-    widthsY,    // Array of anisotropic lengths (Y) after each layer (including initial)
-    coords,     // Die coordinates used for visualisation
-    rDie,       // Worst-case R_th per die including coupling
-    rTotal,     // Overall R_th for all dies combined
-    numDies: p.dies, // Pass number of dies to client
-    rCoolPerDie: rCool, // ADDED: Pass per-die cooler resistance to client
-    rStack,     // Send cumulative stack Rth back for percentage calculations
-    rDieList: temps,     // Temperatures for simultaneous 1W per die
+    rEach,
+    rCum,
+    widths,
+    lengths,
+    widthsX,
+    widthsY,
+    coords,
+    rDie,
+    rTotal,
+    numDies: N,
+    rCoolPerDie: rCool,
+    rStack,
+    rDieList: temps,
     rDieAvg: avgTemp,
-    rMatrix,   // Full resistance matrix
-    rPerDie    // Individual die-to-ambient resistances
+    rMatrix,
+    rPerDie
   };
 }
-
 function computeSensitivity(p, baseR) {
   var frac = 0.01;
   var layerSens = p.layers.map(function(L, idx) {
