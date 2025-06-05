@@ -11,6 +11,7 @@ const $ = id => document.getElementById(id); //
 const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
 const outDie = $('outDie'), outTot = $('outTotal'); //
 const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
+const matTbl = $('matTbl'), matHdr = $('matHdr');
 const resultCard = $('resultCard'); //
 const btnExport = $('btnExport'); //
 const btnMonte = $('btnMonte'); //
@@ -196,17 +197,21 @@ function draw(o) {
   }
   let dieTxt = '-';
   if (typeof o.rDie === 'number' && isFinite(o.rDie)) dieTxt = o.rDie.toFixed(3);
-  if (Array.isArray(o.rDieList) && o.rDieList.length > 1 && typeof o.rDieAvg === 'number') {
+  if (Array.isArray(o.rPerDie) && o.rPerDie.length > 0) {
+    const vals = o.rPerDie.map((v,i)=>`D${i+1}:${v.toFixed(3)}`).join(', ');
+    outDie.textContent = `Rth / die (worst ${dieTxt}) [${vals}]`;
+  } else if (Array.isArray(o.rDieList) && o.rDieList.length > 1 && typeof o.rDieAvg === 'number') {
     outDie.textContent = `Rth / die (max) = ${dieTxt} °C/W, avg ${o.rDieAvg.toFixed(3)}`;
   } else {
     outDie.textContent = `Rth / die = ${dieTxt} °C/W`;
   }
   outTot.textContent = `Total stack (all dies) = ${typeof o.rTotal === 'number' && isFinite(o.rTotal) ? o.rTotal.toFixed(3) : '-'} °C/W`; //
-  
-  buildCone(o.widths); //
-  
+
+  buildCones(o.widths, o.coords); //
+
   // MODIFICATION: Pass sensitivity data along with cooler info
   buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack, o.sensitivity);
+  buildMatrix(o.rMatrix);
 
   if (resultCard) { //
     resultCard.style.display = '';  //
@@ -229,17 +234,21 @@ function drawMonte(o) {
   if (mcCard) mcCard.style.display = '';
 }
 
-/* ======================= 2‑D cone (SVG) ======================= */
-function buildCone(widths) { //
+/* ======================= 2‑D cones (SVG) ======================= */
+function buildCones(widths, coords) { //
   cone.innerHTML = '';  //
-  if (!widths || widths.length === 0) return; //
+  if (!widths || widths.length === 0 || !Array.isArray(coords)) return; //
 
   const tList = [...tbl.tBodies[0].rows].map(r => +r.cells[2].firstElementChild.value / 1e6); //
   const Hm = tList.reduce((a, b) => a + b, 0);  //
-  const Wm = Math.max(...widths);  //
+  const maxSpread = Math.max(...widths);  //
+  const xs = coords.map(c=> (c[0]||0)/1000);
+  const minX = Math.min(...xs) - maxSpread/2;
+  const maxX = Math.max(...xs) + maxSpread/2;
+  const Wm = maxX - minX;
 
   if (Hm === 0 || Wm === 0 || !isFinite(Wm)) { //
-    cone.textContent = 'Cannot draw cone: Layer thickness or initial width is zero, or max width is not finite.'; //
+    cone.textContent = 'Cannot draw cones: invalid geometry.'; //
     return; //
   }
 
@@ -250,32 +259,45 @@ function buildCone(widths) { //
   const yS = Hm > 0 ? H_svg / Hm : 0;  //
 
   const svg = NS('svg', { width: W_svg, height: H_svg, viewBox: `0 0 ${W_svg} ${H_svg}`, preserveAspectRatio: 'xMidYMid meet' }); //
-  let currentY_px = 0; //
 
-  widths.slice(0, -1).forEach((wTop_m, i) => {  //
-    if (i >= tList.length) return; //
+  coords.forEach((c,idx)=>{
+    let currentY_px = 0;
+    const x0 = ( (c[0]||0)/1000 - minX ) * xS;
+    widths.slice(0,-1).forEach((wTop_m,i)=>{
+      if(i>=tList.length) return;
+      const wBottom_m = widths[i+1];
+      const h_layer_m = tList[i];
+      const h_layer_px = h_layer_m*yS;
 
-    const wBottom_m = widths[i + 1];       //
-    const h_layer_m = tList[i];       //
-    const h_layer_px = h_layer_m * yS; //
+      const halfTop = wTop_m/2; const halfBot = wBottom_m/2;
+      let leftTop = x0 - halfTop*xS; let rightTop = x0 + halfTop*xS;
+      let leftBot = x0 - halfBot*xS; let rightBot = x0 + halfBot*xS;
 
-    const xLeftTop_px = (W_svg - (wTop_m * xS)) / 2; //
-    const xRightTop_px = xLeftTop_px + (wTop_m * xS); //
+      if(idx>0){
+        const prevX = ( (coords[idx-1][0]||0)/1000 - minX ) * xS;
+        const mid = (prevX + x0)/2;
+        leftTop = Math.max(leftTop, mid);
+        leftBot = Math.max(leftBot, mid);
+      }
+      if(idx<coords.length-1){
+        const nextX = ( (coords[idx+1][0]||0)/1000 - minX ) * xS;
+        const mid = (nextX + x0)/2;
+        rightTop = Math.min(rightTop, mid);
+        rightBot = Math.min(rightBot, mid);
+      }
 
-    const xLeftBottom_px = (W_svg - (wBottom_m * xS)) / 2; //
-    const xRightBottom_px = xLeftBottom_px + (wBottom_m * xS); //
-
-    const yBottom_px = currentY_px + h_layer_px; //
-
-    svg.appendChild( //
-      NS('polygon', { //
-        points: `${xLeftTop_px},${currentY_px} ${xRightTop_px},${currentY_px} ${xRightBottom_px},${yBottom_px} ${xLeftBottom_px},${yBottom_px}`, //
-        fill:   `hsl(${30 + i * 25}, 70%, 60%)`, //
-        stroke: '#222', //
-        'stroke-width': '0.5' //
-      })
-    );
-    currentY_px = yBottom_px; //
+      const yBottom_px = currentY_px + h_layer_px;
+      svg.appendChild(
+        NS('polygon',{
+          points:`${leftTop},${currentY_px} ${rightTop},${currentY_px} ${rightBot},${yBottom_px} ${leftBot},${yBottom_px}`,
+          fill:`hsl(${30 + idx*60},70%,65%)`,
+          stroke:'#222',
+          'stroke-width':'0.5',
+          'fill-opacity':'0.6'
+        })
+      );
+      currentY_px = yBottom_px;
+    });
   });
   cone.appendChild(svg); //
 }
@@ -384,6 +406,24 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
       buildCurve([]); //
   } else { 
       buildCurve([]); //
+  }
+}
+
+/* ======================= Resistance matrix table ======================= */
+function buildMatrix(mat){
+  if(!matTbl) return;
+  const body = matTbl.tBodies[0];
+  body.innerHTML='';
+  if(!Array.isArray(mat) || mat.length===0) return;
+  const n = mat.length;
+  matHdr.innerHTML='<th></th>' + Array.from({length:n},(_,i)=>`<th>D${i+1}</th>`).join('');
+  for(let i=0;i<n;i++){
+    const row = body.insertRow();
+    row.insertCell().textContent=`D${i+1}`;
+    for(let j=0;j<n;j++){
+      const v = mat[i][j];
+      row.insertCell().textContent=(typeof v==='number' && isFinite(v))?v.toFixed(3):'-';
+    }
   }
 }
 

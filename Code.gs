@@ -224,6 +224,20 @@ function coreSolve(p) {
   const rDie = maxTemp;
   rTotal = maxTemp/ N;
 
+  // build full resistance matrix via unit heat inputs
+  function buildResistanceMatrix(M){
+    const n=M.length;
+    const res=[];
+    for(let i=0;i<n;i++){
+      const b=Array(n).fill(0); b[i]=1;
+      res.push(solveMatrix(M,b));
+    }
+    return res;
+  }
+
+  const rMatrix = buildResistanceMatrix(G);
+  const rPerDie = rMatrix.map((row,i)=> row[i]);
+
   /* ---------- back to the browser ------------------------------- */
   return {
     rEach,      // Array of R_th for each layer (per-die stack component)
@@ -232,13 +246,16 @@ function coreSolve(p) {
     lengths,    // Array of isotropic lengths (Y) after each layer (including initial)
     widthsX,    // Array of anisotropic widths (X) after each layer (including initial)
     widthsY,    // Array of anisotropic lengths (Y) after each layer (including initial)
+    coords,     // Die coordinates used for visualisation
     rDie,       // Worst-case R_th per die including coupling
     rTotal,     // Overall R_th for all dies combined
     numDies: p.dies, // Pass number of dies to client
     rCoolPerDie: rCool, // ADDED: Pass per-die cooler resistance to client
     rStack,     // Send cumulative stack Rth back for percentage calculations
-    rDieList: temps,
-    rDieAvg: avgTemp
+    rDieList: temps,     // Temperatures for simultaneous 1W per die
+    rDieAvg: avgTemp,
+    rMatrix,   // Full resistance matrix
+    rPerDie    // Individual die-to-ambient resistances
   };
 }
 
