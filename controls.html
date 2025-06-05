@@ -13,6 +13,24 @@
   <label title="Number of identical dies in the stack">#&nbsp;of&nbsp;dies
     <input id="dies" type="number" min="1" value="1">
   </label>
+
+  <label title="Center-to-center spacing between dies in millimetres">Spacing&nbsp;[mm]
+    <input id="dieSpacing" type="number" step="0.1" value="1">
+  </label>
+
+  <label title="Arrangement of the dies on the package">Layout
+    <select id="dieLayout">
+      <option value="line">Line</option>
+      <option value="square">Square&nbsp;2×2</option>
+      <option value="diamond">Diamond</option>
+      <option value="custom">Custom</option>
+    </select>
+  </label>
+
+  <label id="coordBox" class="hide" title="Custom die coordinates x,y; semicolon separated">
+    Coords
+    <input id="customCoords" type="text" placeholder="0,0;1,0">
+  </label>
 </section>
 
 <section class="card inline">
