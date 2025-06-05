@@ -18,7 +18,7 @@ function coreSolve(p) {
   const RTH_LIMIT = 100; // abort if cumulative Rth exceeds this
 
   // Validate payload structure
-  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth'];
+  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth', 'spacing'];
   numericFields.forEach(function(field) {
     if (typeof p[field] !== 'number' || isNaN(p[field])) {
       throw new Error('Invalid payload: "' + field + '" must be a number');
@@ -35,10 +35,15 @@ function coreSolve(p) {
   if (p.coolerMode === 'direct' && p.coolerRth <= 0) {
     throw new Error('coolerRth must be positive for direct mode');
   }
+  if (typeof p.spacing === 'number' && p.spacing < 0) {
+    throw new Error('spacing must be non-negative');
+  }
 
   if (!Array.isArray(p.layers)) {
     throw new Error('Invalid payload: "layers" must be an array');
   }
+  if (typeof p.layout !== 'string') p.layout = 'line';
+  if (typeof p.coords !== 'string') p.coords = '';
   p.layers.forEach(function(L, idx) {
     if (typeof L !== 'object' || L === null) {
       throw new Error('Invalid layer at index ' + idx + ': must be an object');
@@ -146,12 +151,78 @@ function coreSolve(p) {
 
   /* ---------- per-die & total ----------------------------------- */
   const rStack = rCum.length > 0 ? rCum[rCum.length - 1] : 0; //
-  const rDie = rStack + rCool; //
-  
-  let rTotal = Infinity; //
-  if (p.dies > 0) { //
-      rTotal = rDie / p.dies; //
+  const rVert = rStack + rCool; // vertical path for a single die
+
+  let rTotal = Infinity; // legacy total without coupling
+  if (p.dies > 0) {
+      rTotal = rVert / p.dies;
   }
+
+  /* ---------- thermal coupling network ------------------------- */
+  const N = Math.max(1, Math.floor(p.dies));
+  function getCoords(layout, n, spacing, custom) {
+    const arr = [];
+    const s = typeof spacing === 'number' ? spacing : 0;
+    if (layout === 'square' && n >= 4) {
+      const d = s / 2;
+      arr.push([-d,-d],[d,-d],[-d,d],[d,d]);
+      for (let i=4;i<n;i++) arr.push([0,0]);
+    } else if (layout === 'diamond' && n >= 4) {
+      const d = s / 2;
+      arr.push([0,-d],[-d,0],[0,d],[d,0]);
+      for (let i=4;i<n;i++) arr.push([0,0]);
+    } else if (layout === 'custom' && typeof custom === 'string') {
+      custom.split(';').forEach(p=>{
+        const parts = p.split(',');
+        if (parts.length===2) arr.push([parseFloat(parts[0])||0, parseFloat(parts[1])||0]);
+      });
+      while (arr.length < n) arr.push([0,0]);
+    } else { // line
+      for (let i=0;i<n;i++) arr.push([i*s,0]);
+    }
+    return arr.slice(0,n);
+  }
+
+  const coords = getCoords(p.layout, N, p.spacing, p.coords);
+  const Ga = rVert > 0 ? 1/rVert : 0;
+  const totalThick = p.layers.reduce((a,L)=>a + L.t*1e-6,0);
+  const kCouple = p.layers[0] ? p.layers[0].kxy : 1;
+  const crossArea = totalThick * wid; // rough approximation
+  const G = Array.from({length:N},()=>Array(N).fill(0));
+  for (let i=0;i<N;i++) {
+    for (let j=i+1;j<N;j++) {
+      const dx = (coords[i][0]-coords[j][0]) / 1000;
+      const dy = (coords[i][1]-coords[j][1]) / 1000;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist>0 && crossArea>0 && kCouple>0) {
+        const Rl = dist/(kCouple*crossArea);
+        const gij = 1/Rl;
+        G[i][i] += gij; G[j][j] += gij; G[i][j] -= gij; G[j][i] -= gij;
+      }
+    }
+    G[i][i] += Ga;
+  }
+
+  function solveMatrix(A,b){
+    const n=A.length; const B=b.slice();
+    const M=A.map(r=>r.slice());
+    for(let i=0;i<n;i++){
+      let max=i; for(let j=i+1;j<n;j++) if(Math.abs(M[j][i])>Math.abs(M[max][i])) max=j;
+      const tmp=M[i]; M[i]=M[max]; M[max]=tmp; const t=B[i]; B[i]=B[max]; B[max]=t;
+      const piv=M[i][i]; if(Math.abs(piv)<1e-12) return Array(n).fill(NaN);
+      for(let j=i+1;j<n;j++){ const f=M[j][i]/piv; for(let k=i;k<n;k++) M[j][k]-=f*M[i][k]; B[j]-=f*B[i]; }
+    }
+    const x=Array(n).fill(0);
+    for(let i=n-1;i>=0;i--){ let sum=B[i]; for(let j=i+1;j<n;j++) sum-=M[i][j]*x[j]; x[i]=sum/M[i][i]; }
+    return x;
+  }
+
+  const Pvec = Array(N).fill(1); // 1W each
+  const temps = solveMatrix(G,Pvec);
+  const maxTemp = Math.max.apply(null, temps.filter(v=>typeof v==='number'));
+  const avgTemp = temps.reduce((a,b)=>a+b,0)/temps.length;
+  const rDie = maxTemp;
+  rTotal = maxTemp/ N;
 
   /* ---------- back to the browser ------------------------------- */
   return {
@@ -161,11 +232,13 @@ function coreSolve(p) {
     lengths,    // Array of isotropic lengths (Y) after each layer (including initial)
     widthsX,    // Array of anisotropic widths (X) after each layer (including initial)
     widthsY,    // Array of anisotropic lengths (Y) after each layer (including initial)
-    rDie,       // Total R_th per die (stack + cooler)
+    rDie,       // Worst-case R_th per die including coupling
     rTotal,     // Overall R_th for all dies combined
     numDies: p.dies, // Pass number of dies to client
     rCoolPerDie: rCool, // ADDED: Pass per-die cooler resistance to client
-    rStack      // Send cumulative stack Rth back for percentage calculations
+    rStack,     // Send cumulative stack Rth back for percentage calculations
+    rDieList: temps,
+    rDieAvg: avgTemp
   };
 }
 
@@ -244,6 +317,9 @@ function solveMonteCarlo(p) {
         srcLen: p.srcLen,
         srcWid: p.srcWid,
         dies:   p.dies,
+        spacing: p.spacing,
+        layout:  p.layout,
+        coords:  p.coords,
         coolerMode: p.coolerMode,
         coolerRth:  p.coolerRth,
         hConv:      p.hConv,
