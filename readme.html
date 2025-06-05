@@ -1,0 +1,46 @@
+<article>
+  <h2>Stack-up Rth Calculator</h2>
+  <p>This repository contains a Google Apps Script web app that estimates the thermal resistance (Rth) of a material stack-up. The UI is delivered from <code>index.html</code> and the logic resides in <code>Code.gs</code>.</p>
+
+  <h3>Import into Google Apps Script</h3>
+  <ol>
+    <li>Open <a href="https://script.new" target="_blank">script.new</a> to create a blank project.</li>
+    <li>Replace the default <code>Code.gs</code> with the contents of this repo's <code>Code.gs</code>.</li>
+    <li>Add new files named <code>index.html</code>, <code>controls.html</code>, <code>ui.html</code> and <code>styles.html</code>; paste in the matching contents from this repo.</li>
+    <li>Open the project manifest (<code>appsscript.json</code>) and replace its contents with the version provided here.</li>
+  </ol>
+
+  <h3>Deploy as a Web App</h3>
+  <ol>
+    <li>In the editor choose <strong>Deploy &gt; New deployment</strong>.</li>
+    <li>Select <strong>Web app</strong> as the deployment type.</li>
+    <li>Provide a description and confirm the execution and access settings.</li>
+    <li>Click <strong>Deploy</strong> and authorize the script.</li>
+  </ol>
+  <p>After deployment you will receive a web app URL. Visiting that URL loads <code>index.html</code> and starts the tool.</p>
+
+  <h3>Basic Usage</h3>
+  <ol>
+    <li>Enter the heat source length and width.</li>
+    <li>Add material layers in the table. Each layer requires thickness <strong>t</strong>, in-plane conductivity <strong>kxy</strong> and through-plane conductivity <strong>kz</strong>.</li>
+    <li>Click <strong>Run</strong> to calculate thermal resistance.</li>
+    <li>Use <strong>Monte Carlo</strong> to simulate uncertainty; adjust iterations and deviation in the Monte Carlo section.</li>
+    <li>Hover over form labels to view tooltips explaining the parameters.</li>
+    <li>Tooltips on the results table and graphs explain the values shown.</li>
+  </ol>
+
+  <h3>Calculation Approach</h3>
+  <p>The solver divides each layer into 1&nbsp;µm slices and updates the heat-spreading footprint after every slice using angles derived from the conductivity ratios. Resistance is accumulated slice by slice; if the cumulative value ever exceeds <code>RTH_LIMIT</code> (100&nbsp;°C/W) the calculation aborts. Once all layers are processed, the selected cooler model—direct resistance or a convection term based on the final area—is added to obtain the per-die and total stack resistance.</p>
+
+  <h3>Assumptions &amp; Limitations</h3>
+  <ul>
+    <li>Source length and width are entered in <strong>millimetres</strong>.</li>
+    <li>Layer thicknesses use <strong>micrometres</strong> and conductivities are in <strong>W/(m·K)</strong>.</li>
+    <li>Results (and limits) are reported in <strong>°C/W</strong>.</li>
+    <li>Each layer is considered homogeneous; spreading is idealised as described above.</li>
+    <li>Calculations stop if cumulative Rth exceeds 100&nbsp;°C/W.</li>
+  </ul>
+
+  <h3>Contributing</h3>
+  <p>Improvements are welcome! Fork this repo and open a pull request with your changes. Use the <strong>Run</strong> button in the Apps Script editor to manually test your updates. If you add unit tests later, run them before submitting your PR.</p>
+</article>

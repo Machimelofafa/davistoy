@@ -11,6 +11,7 @@
   <script src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
 <body>
+  <button id="btnReadme" style="float:right">README</button>
   <h1>Stack‑up R<sub>th</sub> Calculator V2</h1>
 
   <!-- heat‑source + cooler forms -->
@@ -71,6 +72,10 @@
     <h2>Monte Carlo Results</h2>
     <p id="mcStats"></p>
     <svg id="histSvg" title="Histogram of Monte Carlo simulation results"></svg>
+  </section>
+
+  <section class="card" id="readmeDiv" style="display:none">
+    <?!= inc('readme'); ?>
   </section>
 
   <!-- front‑end JS -->
