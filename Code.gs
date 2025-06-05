@@ -201,31 +201,41 @@ function coreSolve(p) {
   }
 
   const numLayers = p.layers.length;
-  const G = Array.from({length:N},()=>Array(N).fill(0));
-  for (let i=0;i<N;i++) {
-    for (let j=i+1;j<N;j++) {
+  const G = Array.from({ length: N }, () => Array(N).fill(0));
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
       const d_ij = distanceInMeters(coords[i], coords[j]);
       let R_ij = 0;
       let anyOverlap = false;
-      for (let l=0; l<numLayers; l++) {
-        const r_i = 0.5 * Math.hypot(widthsX_list[i][l + 1],
-                                     widthsY_list[i][l + 1]);
-        const r_j = 0.5 * Math.hypot(widthsX_list[j][l + 1],
-                                     widthsY_list[j][l + 1]);
+
+      for (let l = 0; l < numLayers; l++) {
+        const r_i = 0.5 * Math.hypot(
+          widthsX_list[i][l + 1],
+          widthsY_list[i][l + 1]
+        );
+        const r_j = 0.5 * Math.hypot(
+          widthsX_list[j][l + 1],
+          widthsY_list[j][l + 1]
+        );
         const area = circleOverlap(r_i, r_j, d_ij);
         if (area > 0) {
-          const R_l  = (p.layers[l].t * 1e-6) / (p.layers[l].kxy * area);
           anyOverlap = true;
+          const R_l = (p.layers[l].t * 1e-6) / (p.layers[l].kxy * area);
           R_ij += R_l;
         }
       }
+
       if (anyOverlap) {
-        const gij = 1/R_ij;
-        G[i][i] += gij; G[j][j] += gij; G[i][j] -= gij; G[j][i] -= gij;
+        const gij = 1 / R_ij;
+        G[i][i] += gij;
+        G[j][j] += gij;
+        G[i][j] -= gij;
+        G[j][i] -= gij;
       }
     }
+
     const rVert_i = R_stack_self[i] + R_cooler_self[i];
-    const Ga_i = rVert_i > 0 ? 1/rVert_i : 0;
+    const Ga_i    = rVert_i > 0 ? 1 / rVert_i : 0;
     G[i][i] += Ga_i;
   }
 
