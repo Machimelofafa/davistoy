@@ -16,6 +16,7 @@ const btnExport = $('btnExport'); //
 const btnMonte = $('btnMonte'); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
 const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
+const btnReadme = $('btnReadme'), readmeDiv = $('readmeDiv'); //
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
@@ -48,6 +49,14 @@ function updateCoolerVisibility() { //
   if (!coolSel) return; //
   directBox.classList.toggle('hide', coolSel.value !== 'direct'); //
   convBox.classList.toggle('hide', coolSel.value !== 'conv'); //
+}
+
+function toggleReadme() { //
+  if (!readmeDiv) return; //
+  const isHidden = readmeDiv.style.display === 'none' || readmeDiv.style.display === ''; //
+  readmeDiv.style.display = isHidden ? 'block' : 'none'; //
+  if (!isHidden) return; //
+  readmeDiv.scrollIntoView({ behavior: 'smooth' }); //
 }
 
 /* ======================= Server call ======================= */
@@ -481,6 +490,7 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (btnRun) btnRun.onclick = runCalc; //
   if (btnMonte) btnMonte.onclick = runMonte; //
   if (btnExport) btnExport.onclick = exportResults; //
+  if (btnReadme) btnReadme.onclick = toggleReadme; //
   if (coolSel) coolSel.onchange = updateCoolerVisibility; //
 
   if (srcLen) srcLen.value = '5'; //
