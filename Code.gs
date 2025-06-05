@@ -189,6 +189,17 @@ function coreSolve(p) {
     return Math.sqrt(dx*dx + dy*dy);
   }
 
+  function circleOverlap(r1, r2, d) {
+    if (d >= r1 + r2) return 0;
+    if (d <= Math.abs(r1 - r2)) {
+      const r = Math.min(r1, r2);
+      return Math.PI * r * r;
+    }
+    const alpha = Math.acos((r1*r1 + d*d - r2*r2) / (2*r1*d));
+    const beta  = Math.acos((r2*r2 + d*d - r1*r1) / (2*r2*d));
+    return r1*r1 * alpha + r2*r2 * beta - d * r1 * Math.sin(alpha);
+  }
+
   const numLayers = p.layers.length;
   const G = Array.from({length:N},()=>Array(N).fill(0));
   for (let i=0;i<N;i++) {
@@ -196,12 +207,13 @@ function coreSolve(p) {
       const d_ij = distanceInMeters(coords[i], coords[j]);
       let R_ij = 0;
       for (let l=0; l<numLayers; l++) {
-        const r_i = 0.5 * Math.hypot(widthsX_list[i][l], widthsY_list[i][l]);
-        const r_j = 0.5 * Math.hypot(widthsX_list[j][l], widthsY_list[j][l]);
-        if (d_ij < r_i + r_j) {
-          const overlap = r_i + r_j - d_ij;
-          const A_l  = overlap * (p.layers[l].t * 1e-6);
-          const R_l  = (p.layers[l].t * 1e-6) / (p.layers[l].kxy * A_l);
+        const r_i = 0.5 * Math.hypot(widthsX_list[i][l + 1],
+                                     widthsY_list[i][l + 1]);
+        const r_j = 0.5 * Math.hypot(widthsX_list[j][l + 1],
+                                     widthsY_list[j][l + 1]);
+        const area = circleOverlap(r_i, r_j, d_ij);
+        if (area > 0) {
+          const R_l  = (p.layers[l].t * 1e-6) / (p.layers[l].kxy * area);
           R_ij += R_l;
         } else {
           R_ij = Infinity;
