@@ -11,6 +11,7 @@ const $ = id => document.getElementById(id); //
 const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
 const outDie = $('outDie'), outTot = $('outTotal'); //
 const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
+const layoutView = $('layoutView');
 const matTbl = $('matTbl'), matHdr = $('matHdr');
 const resultCard = $('resultCard'); //
 const btnExport = $('btnExport'); //
@@ -225,6 +226,7 @@ function draw(o) {
   outTot.textContent = `Total stack (all dies) = ${typeof o.rTotal === 'number' && isFinite(o.rTotal) ? o.rTotal.toFixed(3) : '-'} °C/W`; //
 
   buildCones(o.widths, o.coords); //
+  buildLayoutView(o);
 
   // MODIFICATION: Pass sensitivity data along with cooler info
   buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack, o.sensitivity);
@@ -544,6 +546,79 @@ function buildHistogram(vals) {
     const y = margin.top + (plotH - h);
     histSvg.appendChild(NS('rect', { x, y, width: barW - 1, height: h, fill: '#4FC3F7' }));
   });
+}
+
+function buildLayoutView(o) {
+  if (!layoutView || !o.coords || !o.widthsX || !o.widthsY) {
+    if (layoutView) layoutView.innerHTML = '';
+    return;
+  }
+  layoutView.innerHTML = '';
+
+  const numDies = o.coords.length;
+  if (numDies === 0) return;
+
+  const initialW = +srcWid.value;
+  const initialL = +srcLen.value;
+
+  const bottomIndex = o.widthsX.length - 1;
+  const finalFootprints = o.coords.map((c, i) => ({
+    cx: c[0],
+    cy: c[1],
+    w: o.widthsX[bottomIndex] * 1000,
+    l: o.widthsY[bottomIndex] * 1000
+  }));
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  finalFootprints.forEach(fp => {
+    minX = Math.min(minX, fp.cx - fp.w / 2);
+    maxX = Math.max(maxX, fp.cx + fp.w / 2);
+    minY = Math.min(minY, fp.cy - fp.l / 2);
+    maxY = Math.max(maxY, fp.cy + fp.l / 2);
+  });
+
+  const paddingX = (maxX - minX) * 0.1 || 1;
+  const paddingY = (maxY - minY) * 0.1 || 1;
+  minX -= paddingX;
+  maxX += paddingX;
+  minY -= paddingY;
+  maxY += paddingY;
+
+  const viewW = maxX - minX;
+  const viewH = maxY - minY;
+
+  const svg = NS('svg', {
+    width: '100%',
+    height: '100%',
+    viewBox: `${minX} ${minY} ${viewW} ${viewH}`,
+    preserveAspectRatio: 'xMidYMid meet'
+  });
+
+  o.coords.forEach((c, i) => {
+    const fp = finalFootprints[i];
+
+    svg.appendChild(NS('rect', {
+      x: fp.cx - fp.w / 2,
+      y: fp.cy - fp.l / 2,
+      width: fp.w,
+      height: fp.l,
+      fill: 'rgba(79, 195, 247, 0.3)',
+      stroke: 'rgba(79, 195, 247, 0.8)',
+      'stroke-width': (viewW + viewH) / 400
+    }));
+
+    svg.appendChild(NS('rect', {
+      x: c[0] - initialW / 2,
+      y: c[1] - initialL / 2,
+      width: initialW,
+      height: initialL,
+      fill: 'rgba(255, 100, 100, 0.7)',
+      stroke: 'rgba(200, 50, 50, 1)',
+      'stroke-width': (viewW + viewH) / 500
+    }));
+  });
+
+  layoutView.appendChild(svg);
 }
 /* ======================= SVG helper ======================= */
 function NS(tag, attrs) { //
