@@ -324,7 +324,16 @@ function coreSolve(p) {
   }
 
   const A_union = computeUnionArea(footprints);
-  const G_cool_tot = p.hConv * A_union;
+  let G_cool_tot = 0;
+  if (p.coolerMode === 'conv') {
+    if (p.hConv > 0 && A_union > 0) {
+      G_cool_tot = p.hConv * A_union;
+    }
+  } else if (p.coolerMode === 'direct') {
+    if (p.coolerRth > 0) {
+      G_cool_tot = 1 / p.coolerRth;
+    }
+  }
   Gnew[N][N] += G_cool_tot;
 
   G = Gnew;                    // replace old G
@@ -357,12 +366,8 @@ function coreSolve(p) {
   const maxTemp = Math.max.apply(null, dieTemps.filter(v=>typeof v==='number'));
   const avgTemp = dieTemps.reduce((a,b)=>a+b,0)/dieTemps.length;
 
-  const PperDie = 1.0;       // placeholder for optional input
-  const Tambient = 25.0;     // assumed ambient temperature
-  const deltaTworst = maxTemp - Tambient;
-
   const rDie = maxTemp;
-  const rTotal = deltaTworst / PperDie;
+  const rTotal = N > 0 ? maxTemp / N : 0;
 
   function buildResistanceMatrix(M){
     const n=M.length;
