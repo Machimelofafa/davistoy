@@ -282,12 +282,13 @@ function buildSideView(axis, container, o) {
   const dieWidths1D = (axis === 'x' ? o.widthsX : o.widthsY);
 
   // --- FIX: Calculate scene dimensions based on the 1D coordinates ---
-  const maxFootprint = Math.max(...dieWidths1D) * 1000;
-  const minCoord = Math.min(...uniqueCoords);
-  const maxCoord = Math.max(...uniqueCoords);
+  const maxFootprintWidth = Math.max(...widths) * 1000;
+  const minCoord = Math.min(...dieCoords1D);
+  const maxCoord = Math.max(...dieCoords1D);
 
-  const sceneMin = minCoord - maxFootprint / 2;
-  const sceneMax = maxCoord + maxFootprint / 2;
+  const padding = dieWidth * 1.5;
+  const sceneMin = minCoord - maxFootprintWidth / 2 - padding;
+  const sceneMax = maxCoord + maxFootprintWidth / 2 + padding;
   const sceneWidth = sceneMax - sceneMin;
   const sceneHeight = totalStackThickness + dieHeight + coolerHeight;
 
