@@ -269,8 +269,8 @@ function buildSideView(axis, container, o) {
   if (totalStackThickness === 0) return;
 
   const dieWidth = (axis === 'x' ? +srcWid.value : +srcLen.value); // in mm
-  const dieHeight = dieWidth * 0.4; // mm
-  const coolerHeight = dieWidth * 0.5; // mm
+  const dieHeight = 0.5; // mm
+  const coolerHeight = 2; // mm
 
   // Determine the coordinate and width arrays for the current axis
   const dieCoords1D = o.coords.map(c => (axis === 'x' ? c[0] : c[1]));
@@ -657,8 +657,8 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (srcLen) srcLen.value = '5'; //
   if (srcWid) srcWid.value = '5'; //
   if (dies) dies.value = '4'; //
-  if (diePower) diePower.value = '1.0'; //
-  if (dieSpacing) dieSpacing.value = '1'; //
+  if (diePower) diePower.value = '150'; //
+  if (dieSpacing) dieSpacing.value = '10'; //
   if (dieLayout) dieLayout.value = 'line'; //
 
   if (coolSel) coolSel.value = 'conv';  //
@@ -670,7 +670,7 @@ document.addEventListener('DOMContentLoaded', () => { //
   const initialLayers = [ //
     { mat: "Die attach", t: 30, kxy: 198, kz: 198 }, //
     { mat: "Substrate (Cu)", t: 800, kxy: 393, kz: 393 }, //
-    { mat: "Substrate (Ce)", t: 320, kxy: 61, kz: 61 }, //
+    { mat: "Substrate (Ceramic)", t: 320, kxy: 61, kz: 61 }, //
     { mat: "Substrate (Cu)", t: 800, kxy: 393, kz: 393 }, //
     { mat: "Brazing", t: 200, kxy: 38, kz: 38 } //
   ];
