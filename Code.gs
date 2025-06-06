@@ -233,11 +233,110 @@ function coreSolve(p) {
         G[j][i] -= gij;
       }
     }
-
-    const rVert_i = R_stack_self[i] + R_cooler_self[i];
-    const Ga_i    = rVert_i > 0 ? 1 / rVert_i : 0;
-    G[i][i] += Ga_i;
   }
+
+  // --- START OF "common‐cooler" BLOCK ---
+  // We’ll reshape G from N×N → (N+1)×(N+1), with node N as the cooler.
+  const Gold = G;
+  const Nplus1 = N + 1;
+  let Gnew = new Array(Nplus1);
+  for (let i = 0; i < Nplus1; i++) {
+    Gnew[i] = new Array(Nplus1).fill(0);
+  }
+  // Copy old lateral‑coupling entries:
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      Gnew[i][j] = Gold[i][j];
+    }
+  }
+
+  // A) Route each die i’s stack resistance into the cooler node:
+  for (let i = 0; i < N; i++) {
+    const R_stack_i = R_stack_self[i];
+    const Gstack_i  = R_stack_i > 0 ? 1 / R_stack_i : 0;
+    Gnew[i][N]    -= Gstack_i;
+    Gnew[N][i]    -= Gstack_i;
+    Gnew[i][i]    += Gstack_i;
+    Gnew[N][N]    += Gstack_i;
+  }
+
+  // B) Build bottom‑layer footprints to compute union area:
+  const bottomIndex = numLayers;  // last index in widthsX_list[i]
+  let footprints = [];
+  for (let i = 0; i < N; i++) {
+    const cx = coords[i][0] / 1000.0;
+    const cy = coords[i][1] / 1000.0;
+    const wX = widthsX_list[i][bottomIndex];
+    const wY = widthsY_list[i][bottomIndex];
+    footprints.push({ x0: cx - wX/2, x1: cx + wX/2, y0: cy - wY/2, y1: cy + wY/2 });
+  }
+
+  function computeUnionArea(rects) {
+    let events = [];
+    for (let r of rects) {
+      events.push({ x: r.x0, y0: r.y0, y1: r.y1, add: 1 });
+      events.push({ x: r.x1, y0: r.y0, y1: r.y1, add: -1 });
+    }
+    events.sort((a, b) => a.x - b.x);
+    let active = new Map();
+    function modify(y0, y1, delta) {
+      const key = y0 + ',' + y1;
+      const prev = active.get(key) || 0;
+      const next = prev + delta;
+      if (next <= 0) active.delete(key);
+      else active.set(key, next);
+    }
+    function totalYcovered() {
+      if (active.size === 0) return 0;
+      let segs = [];
+      for (let key of active.keys()) {
+        const [a, b] = key.split(',').map(Number);
+        segs.push([a, b]);
+      }
+      segs.sort((s1, s2) => s1[0] - s2[0]);
+      let length = 0;
+      let [cur0, cur1] = segs[0];
+      for (let i = 1; i < segs.length; i++) {
+        const [n0, n1] = segs[i];
+        if (n0 <= cur1) {
+          cur1 = Math.max(cur1, n1);
+        } else {
+          length += (cur1 - cur0);
+          [cur0, cur1] = [n0, n1];
+        }
+      }
+      length += (cur1 - cur0);
+      return length;
+    }
+    let prevX = events[0].x;
+    let area = 0;
+    for (let ev of events) {
+      const curX = ev.x;
+      const dx = curX - prevX;
+      if (dx > 0) {
+        const yCover = totalYcovered();
+        area += dx * yCover;
+        prevX = curX;
+      }
+      modify(ev.y0, ev.y1, ev.add);
+    }
+    return area;
+  }
+
+  const A_union = computeUnionArea(footprints);
+  const G_cool_tot = p.hConv * A_union;
+  Gnew[N][N] += G_cool_tot;
+
+  G = Gnew;                    // replace old G
+  const NN = Nplus1;           // next steps solve NN×NN system
+
+  // Also rebuild the RHS power vector b as length NN:
+  let Pvec = new Array(NN).fill(0);
+  for (let i = 0; i < N; i++) {
+    Pvec[i] = 1;         // 1W per die
+  }
+  Pvec[N] = 0;                 // cooler node has no direct P_in
+  // --- END OF "common‐cooler" BLOCK ---
 
   function solveMatrix(A,b){
     const n=A.length; const B=b.slice();
@@ -253,12 +352,17 @@ function coreSolve(p) {
     return x;
   }
 
-  const Pvec = Array(N).fill(1); // 1W each
   const temps = solveMatrix(G,Pvec);
-  const maxTemp = Math.max.apply(null, temps.filter(v=>typeof v==='number'));
-  const avgTemp = temps.reduce((a,b)=>a+b,0)/temps.length;
+  const dieTemps = temps.slice(0, N);
+  const maxTemp = Math.max.apply(null, dieTemps.filter(v=>typeof v==='number'));
+  const avgTemp = dieTemps.reduce((a,b)=>a+b,0)/dieTemps.length;
+
+  const PperDie = 1.0;       // placeholder for optional input
+  const Tambient = 25.0;     // assumed ambient temperature
+  const deltaTworst = maxTemp - Tambient;
+
   const rDie = maxTemp;
-  const rTotal = maxTemp / N;
+  const rTotal = deltaTworst / PperDie;
 
   function buildResistanceMatrix(M){
     const n=M.length;
@@ -288,7 +392,7 @@ function coreSolve(p) {
     numDies: N,
     rCoolPerDie: rCool,
     rStack,
-    rDieList: temps,
+    rDieList: dieTemps,
     rDieAvg: avgTemp,
     rMatrix,
     rPerDie
