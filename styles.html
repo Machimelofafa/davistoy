@@ -19,7 +19,7 @@
 
   /* —— layout for cone + summary —— */
   .flexBox{display:flex;gap:18px;align-items:flex-start;}
-  .coneBox{flex: 1; min-width: 250px; height: 200px; overflow:hidden;}
+  .side-view-box { height: 150px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
   .sumBox{
     display:flex;
     flex-direction:column;
@@ -29,6 +29,36 @@
   #cumSvg{width:100%;height:180px;overflow:visible;}
   #histSvg{width:260px;height:auto;overflow:visible;}
   .critical{background:#f8d7da;}
+
+  .viz-column-left {
+    flex: 2; /* Takes up 2/3 of the space */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .viz-column-right {
+    flex: 1; /* Takes up 1/3 of the space */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .top-view-box {
+    height: 318px; /* Match height of the two side views + gap */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .viz-container h3 {
+    margin: 0 0 5px 0;
+    font-size: 15px;
+    color: #005a99;
+  }
+  body.dark-theme .viz-container h3 {
+    color: #82c6ff;
+  }
+  body.dark-theme .side-view-box, body.dark-theme .top-view-box {
+    border-color: #324357;
+  }
 
   /* ===== dark theme overrides ===== */
   body.dark-theme{background:#0E1A25;color:#E8EEF2;}
