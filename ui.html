@@ -10,7 +10,7 @@ const $ = id => document.getElementById(id); //
 // Handles for elements in index.html
 const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
 const outDie = $('outDie'), outTot = $('outTotal'); //
-const sideViewX = $('sideViewX'), sideViewY = $('sideViewY');
+const sideViewX = $('sideViewX'), sideViewY = $('sideViewY'), layoutView = $('layoutView');
 const sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg');
 const resultCard = $('resultCard'); //
 const btnMonte = $('btnMonte'); //
@@ -225,6 +225,7 @@ function draw(o) {
 
   buildSideView('x', sideViewX, o);
   buildSideView('y', sideViewY, o);
+  buildLayoutView(o);
 
   // MODIFICATION: Pass sensitivity data along with cooler info
   buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack, o.sensitivity);
@@ -615,12 +616,11 @@ function buildLayoutView(o) {
     maxY = Math.max(maxY, fp.cy + fp.l / 2);
   });
 
-  const paddingX = (maxX - minX) * 0.1 || 1;
-  const paddingY = (maxY - minY) * 0.1 || 1;
-  minX -= paddingX;
-  maxX += paddingX;
-  minY -= paddingY;
-  maxY += paddingY;
+  const padding = Math.max(initialW, initialL) * 0.5;
+  minX -= padding;
+  maxX += padding;
+  minY -= padding;
+  maxY += padding;
 
   const viewW = maxX - minX;
   const viewH = maxY - minY;

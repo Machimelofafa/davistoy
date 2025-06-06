@@ -52,12 +52,22 @@
 
     <!-- NEW DEDICATED VISUALIZATION SECTION -->
     <section class="card viz-container">
-        <h2>Results Visualizations</h2>
-        <div class="flexBox">
-            <div id="sideViewX" class="coneBox" title="Side-view of heat spreading (X-Z plane)"></div>
-            <div id="sideViewY" class="coneBox" title="Side-view of heat spreading (Y-Z plane)"></div>
+      <h2>Results Visualizations</h2>
+      <div class="flexBox">
+        <!-- Left Column for Side Views -->
+        <div class="viz-column-left">
+          <h3>X axis Thermal dissipation</h3>
+          <div id="sideViewX" class="side-view-box"></div>
+          <h3>Y axis Thermal dissipation</h3>
+          <div id="sideViewY" class="side-view-box"></div>
         </div>
-      </section>
+        <!-- Right Column for Top View -->
+        <div class="viz-column-right">
+          <h3>Top view layout:</h3>
+          <div id="layoutView" class="top-view-box"></div>
+        </div>
+      </div>
+    </section>
 
     <!-- ORIGINAL SUMMARY SECTION -->
     <div class="flexBox">
