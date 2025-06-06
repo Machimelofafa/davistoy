@@ -19,6 +19,7 @@ const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
 const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
 const btnReadme = $('btnReadme'), readmeDiv = $('readmeDiv'); //
 const themeToggle = $('themeToggle'); //
+const loader = $('loader'), errorBox = $('errorBox'); //
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
@@ -116,18 +117,26 @@ function runCalc() { //
     return; //
   }
 
+  if(loader) loader.classList.remove('hide'); //
   if(btnRun) btnRun.disabled = true; //
+  if(errorBox) errorBox.style.display = 'none'; //
   if(resultCard) resultCard.style.display = 'none';  //
 
   google.script.run //
     .withSuccessHandler(response => { //
-      draw(response); //
+      if(loader) loader.classList.add('hide'); //
       if(btnRun) btnRun.disabled = false;  //
+      if(errorBox) errorBox.style.display = 'none'; //
+      draw(response); //
     })
     .withFailureHandler(error => { //
-      alert('Error calculating: ' + error.message); //
-      console.error('Calculation error:', error); //
+      if(loader) loader.classList.add('hide'); //
       if(btnRun) btnRun.disabled = false;  //
+      if(errorBox) { //
+        errorBox.textContent = 'Error calculating: ' + (error.message || error); //
+        errorBox.style.display = 'block'; //
+      } //
+      console.error('Calculation error:', error); //
     })
     .solve({ //
       srcLen: +srcLen.value, //
@@ -159,17 +168,25 @@ function runMonte() { //
   }));
 
   if(btnMonte) btnMonte.disabled = true; //
+  if(loader) loader.classList.remove('hide'); //
+  if(errorBox) errorBox.style.display = 'none'; //
   if(mcCard) mcCard.style.display = 'none'; //
 
   google.script.run //
     .withSuccessHandler(res => { //
-      drawMonte(res); //
+      if(loader) loader.classList.add('hide'); //
       if(btnMonte) btnMonte.disabled = false; //
+      if(errorBox) errorBox.style.display = 'none'; //
+      drawMonte(res); //
     })
     .withFailureHandler(err => { //
-      alert('Error calculating: ' + err.message); //
-      console.error('Monte Carlo error:', err); //
+      if(loader) loader.classList.add('hide'); //
       if(btnMonte) btnMonte.disabled = false; //
+      if(errorBox) { //
+        errorBox.textContent = 'Error calculating: ' + (err.message || err); //
+        errorBox.style.display = 'block'; //
+      } //
+      console.error('Monte Carlo error:', err); //
     })
     .solveMonteCarlo({ //
       srcLen: +srcLen.value,
