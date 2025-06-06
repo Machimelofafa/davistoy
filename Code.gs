@@ -12,7 +12,7 @@ const RTH_LIMIT = 100; // abort if cumulative Rth exceeds this
  * Throws descriptive errors when required fields are missing or invalid.
  */
 function validatePayload(p) {
-  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth', 'spacing'];
+  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth', 'spacing', 'diePower'];
   numericFields.forEach(function(field) {
     if (typeof p[field] !== 'number' || isNaN(p[field])) {
       throw new Error('Invalid payload: "' + field + '" must be a number');
@@ -26,6 +26,9 @@ function validatePayload(p) {
   }
   if (p.coolerMode === 'direct' && p.coolerRth <= 0) {
     throw new Error('coolerRth must be positive for direct mode');
+  }
+  if (typeof p.diePower === 'number' && p.diePower <= 0) {
+    throw new Error('diePower must be positive');
   }
   if (typeof p.spacing === 'number' && p.spacing < 0) {
     throw new Error('spacing must be non-negative');
@@ -392,13 +395,14 @@ function coreSolve(p) {
   const matrixInfo = buildConductanceMatrix(p, results);
   const NN = matrixInfo.G.length;
   let Pvec = new Array(NN).fill(0);
-  for (let i = 0; i < N; i++) Pvec[i] = 1;
+  for (let i = 0; i < N; i++) Pvec[i] = p.diePower || 1.0;
   Pvec[N] = 0;
 
   const sys = solveSystem(matrixInfo.G, Pvec);
 
   const rDie = sys.maxTemp;
-  const rTotal = N > 0 ? sys.maxTemp / N : 0;
+  const P_total = N * (p.diePower || 1.0);
+  const rTotal = P_total > 0 ? sys.maxTemp / P_total : 0;
 
   const { rEach, rCum, lengths, widths, widthsX, widthsY, rCool, rStack } = tplResult;
 
@@ -502,6 +506,7 @@ function solveMonteCarlo(p) {
         coolerMode: p.coolerMode,
         coolerRth:  p.coolerRth,
         hConv:      p.hConv,
+        diePower:  p.diePower,
         layers: perturbed
       });
       results.push(r.rDie);

@@ -22,6 +22,7 @@ const themeToggle = $('themeToggle'); //
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
+const diePower = $('diePower'); // new handle for power input
 const dieSpacing = $('dieSpacing'), dieLayout = $('dieLayout'), customCoords = $('customCoords'); //
 const coolSel = $('coolSel'), directBox = $('directBox'), convBox = $('convBox'); //
 const coolRth = $('coolRth'), hConv = $('hConv'); //
@@ -102,8 +103,8 @@ function runCalc() { //
     }); //
   }
 
-  if (+srcLen.value <= 0 || +srcWid.value <= 0 || +dies.value <= 0 || +dieSpacing.value < 0) { //
-    alert('Source dimensions, die spacing and die count must be positive.'); //
+  if (+srcLen.value <= 0 || +srcWid.value <= 0 || +dies.value <= 0 || +dieSpacing.value < 0 || +diePower.value <= 0) { //
+    alert('Source dimensions, die count, spacing and power must be positive.'); //
     return; //
   } //
   if (coolSel.value === 'direct' && +coolRth.value <= 0) { //
@@ -138,6 +139,7 @@ function runCalc() { //
       coolerMode: coolSel.value, //
       coolerRth:  +coolRth.value, //
       hConv:      +hConv.value, //
+      diePower:  +diePower.value, //
       layers, //
       sensitivity: true //
     });
@@ -179,6 +181,7 @@ function runMonte() { //
       coolerMode: coolSel.value,
       coolerRth:  +coolRth.value,
       hConv:      +hConv.value,
+      diePower:  +diePower.value,
       iterations: +mcIter.value,
       uncT:       +mcUncT.value / 100,
       uncK:       +mcUncK.value / 100,
@@ -196,14 +199,11 @@ function draw(o) {
     return; //
   }
   let dieTxt = '-';
-  if (typeof o.rDie === 'number' && isFinite(o.rDie)) dieTxt = o.rDie.toFixed(3);
-  if (Array.isArray(o.rPerDie) && o.rPerDie.length > 0) {
-    const vals = o.rPerDie.map((v,i)=>`D${i+1}:${v.toFixed(3)}`).join(', ');
-    outDie.textContent = `Rth / die (worst ${dieTxt}) [${vals}]`;
-  } else if (Array.isArray(o.rDieList) && o.rDieList.length > 1 && typeof o.rDieAvg === 'number') {
-    outDie.textContent = `Rth / die (max) = ${dieTxt} °C/W, avg ${o.rDieAvg.toFixed(3)}`;
+  if (typeof o.rDie === 'number' && isFinite(o.rDie)) dieTxt = o.rDie.toFixed(2);
+  if (Array.isArray(o.rDieList) && o.rDieList.length > 1 && typeof o.rDieAvg === 'number') {
+    outDie.textContent = `\u0394T / die (max) = ${dieTxt} \xB0C, avg ${o.rDieAvg.toFixed(2)}`;
   } else {
-    outDie.textContent = `Rth / die = ${dieTxt} °C/W`;
+    outDie.textContent = `\u0394T / die = ${dieTxt} \xB0C`;
   }
   outTot.textContent = `Total stack (all dies) = ${typeof o.rTotal === 'number' && isFinite(o.rTotal) ? o.rTotal.toFixed(3) : '-'} °C/W`; //
 
@@ -569,6 +569,7 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (srcLen) srcLen.value = '5'; //
   if (srcWid) srcWid.value = '5'; //
   if (dies) dies.value = '4'; //
+  if (diePower) diePower.value = '1.0'; //
   if (dieSpacing) dieSpacing.value = '1'; //
   if (dieLayout) dieLayout.value = 'line'; //
 
