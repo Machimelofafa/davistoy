@@ -146,24 +146,32 @@ function solveSingleDieStack(p1) {
 function getCoords(layout, n, spacing, custom) {
   const arr = [];
   const s = typeof spacing === 'number' ? spacing : 0;
-  if (layout === 'square' && n >= 4) {
+  if (layout === 'square' && n >= 1) {
     const d = s / 2;
-    arr.push([-d,-d],[d,-d],[-d,d],[d,d]);
-    for (let i=4;i<n;i++) arr.push([0,0]);
-  } else if (layout === 'diamond' && n >= 4) {
+    arr.push([-d, -d]);
+    if (n >= 2) arr.push([d, -d]);
+    if (n >= 3) arr.push([-d, d]);
+    if (n >= 4) arr.push([d, d]);
+    // For dies 5 and up, place them linearly
+    for (let i = 4; i < n; i++) arr.push([(i - 1.5) * s, 0]);
+  } else if (layout === 'diamond' && n >= 1) {
     const d = s / 2;
-    arr.push([0,-d],[-d,0],[0,d],[d,0]);
-    for (let i=4;i<n;i++) arr.push([0,0]);
+    arr.push([0, -d]);
+    if (n >= 2) arr.push([-d, 0]);
+    if (n >= 3) arr.push([0, d]);
+    if (n >= 4) arr.push([d, 0]);
+    // For dies 5 and up, place them linearly
+    for (let i = 4; i < n; i++) arr.push([(i - 1.5) * s, 0]);
   } else if (layout === 'custom' && typeof custom === 'string') {
-    custom.split(';').forEach(p=>{
+    custom.split(';').forEach(p => {
       const parts = p.split(',');
-      if (parts.length===2) arr.push([parseFloat(parts[0])||0, parseFloat(parts[1])||0]);
+      if (parts.length === 2) arr.push([parseFloat(parts[0]) || 0, parseFloat(parts[1]) || 0]);
     });
-    while (arr.length < n) arr.push([0,0]);
-  } else {
-    for (let i=0;i<n;i++) arr.push([i*s,0]);
+    while (arr.length < n) arr.push([0, 0]);
+  } else { // Default to 'line' layout
+    for (let i = 0; i < n; i++) arr.push([i * s, 0]);
   }
-  return arr.slice(0,n);
+  return arr.slice(0, n);
 }
 
 /** Utility to compute distance between two coords in metres. */

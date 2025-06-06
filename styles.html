@@ -13,10 +13,13 @@
   button{border:none;border-radius:4px;padding:6px 12px;cursor:pointer;background:#007acc;color:#fff;font-weight:600;margin-top:8px;} button.primary{font-size:16px;padding:8px 18px} button:hover{background:#1497ff}
 
   .hide{display:none;} .small{color:#006bb3;font-size:13px} .result p{margin:4px 0}
+  .viz-container {
+    padding-bottom: 20px;
+  }
 
   /* —— layout for cone + summary —— */
   .flexBox{display:flex;gap:18px;align-items:flex-start;}
-  .coneBox{flex: 1;max-height:200px;overflow:hidden;}
+  .coneBox{flex: 1; min-width: 250px; height: 200px; overflow:hidden;}
   .sumBox{min-width:240px;} .sumBox.flexInner{display:flex;gap:10px;align-items:flex-start;}
   #cumSvg{width:260px;height:auto;overflow:visible;}
   #histSvg{width:260px;height:auto;overflow:visible;}
