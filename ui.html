@@ -117,20 +117,20 @@ function runCalc() { //
     return; //
   }
 
-  if(loader) loader.classList.remove('hide'); //
+  if(loader) loader.style.display = 'flex'; //
   if(btnRun) btnRun.disabled = true; //
   if(errorBox) errorBox.style.display = 'none'; //
   if(resultCard) resultCard.style.display = 'none';  //
 
   google.script.run //
     .withSuccessHandler(response => { //
-      if(loader) loader.classList.add('hide'); //
+      if(loader) loader.style.display = 'none'; //
       if(btnRun) btnRun.disabled = false;  //
       if(errorBox) errorBox.style.display = 'none'; //
       draw(response); //
     })
     .withFailureHandler(error => { //
-      if(loader) loader.classList.add('hide'); //
+      if(loader) loader.style.display = 'none'; //
       if(btnRun) btnRun.disabled = false;  //
       if(errorBox) { //
         errorBox.textContent = 'Error calculating: ' + (error.message || error); //
@@ -168,19 +168,19 @@ function runMonte() { //
   }));
 
   if(btnMonte) btnMonte.disabled = true; //
-  if(loader) loader.classList.remove('hide'); //
+  if(loader) loader.style.display = 'flex'; //
   if(errorBox) errorBox.style.display = 'none'; //
   if(mcCard) mcCard.style.display = 'none'; //
 
   google.script.run //
     .withSuccessHandler(res => { //
-      if(loader) loader.classList.add('hide'); //
+      if(loader) loader.style.display = 'none'; //
       if(btnMonte) btnMonte.disabled = false; //
       if(errorBox) errorBox.style.display = 'none'; //
       drawMonte(res); //
     })
     .withFailureHandler(err => { //
-      if(loader) loader.classList.add('hide'); //
+      if(loader) loader.style.display = 'none'; //
       if(btnMonte) btnMonte.disabled = false; //
       if(errorBox) { //
         errorBox.textContent = 'Error calculating: ' + (err.message || err); //
