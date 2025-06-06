@@ -173,16 +173,11 @@ function distanceInMeters(a,b){
   return Math.sqrt(dx*dx + dy*dy);
 }
 
-/** Area overlap of two circles separated by distance d. */
-function circleOverlap(r1, r2, d) {
-  if (d >= r1 + r2) return 0;
-  if (d <= Math.abs(r1 - r2)) {
-    const r = Math.min(r1, r2);
-    return Math.PI * r * r;
-  }
-  const alpha = Math.acos((r1*r1 + d*d - r2*r2) / (2*r1*d));
-  const beta  = Math.acos((r2*r2 + d*d - r1*r1) / (2*r2*d));
-  return r1*r1 * alpha + r2*r2 * beta - d * r1 * Math.sin(alpha);
+/** Area overlap of two axis-aligned rectangles. */
+function rectangleOverlap(r1, r2) {
+  const x_overlap = Math.max(0, Math.min(r1.x1, r2.x1) - Math.max(r1.x0, r2.x0));
+  const y_overlap = Math.max(0, Math.min(r1.y1, r2.y1) - Math.max(r1.y0, r2.y0));
+  return x_overlap * y_overlap;
 }
 
 /** Compute the union area of a set of axis-aligned rectangles. */
@@ -255,15 +250,19 @@ function buildConductanceMatrix(p, singleDieResults) {
       let anyOverlap = false;
 
       for (let l = 0; l < numLayers; l++) {
-        const r_i = 0.5 * Math.hypot(
-          singleDieResults[i].widthsX[l + 1],
-          singleDieResults[i].widthsY[l + 1]
-        );
-        const r_j = 0.5 * Math.hypot(
-          singleDieResults[j].widthsX[l + 1],
-          singleDieResults[j].widthsY[l + 1]
-        );
-        const area = circleOverlap(r_i, r_j, d_ij);
+        const rect_i = {
+          x0: coords[i][0]/1000 - singleDieResults[i].widthsX[l + 1]/2,
+          x1: coords[i][0]/1000 + singleDieResults[i].widthsX[l + 1]/2,
+          y0: coords[i][1]/1000 - singleDieResults[i].widthsY[l + 1]/2,
+          y1: coords[i][1]/1000 + singleDieResults[i].widthsY[l + 1]/2
+        };
+        const rect_j = {
+          x0: coords[j][0]/1000 - singleDieResults[j].widthsX[l + 1]/2,
+          x1: coords[j][0]/1000 + singleDieResults[j].widthsX[l + 1]/2,
+          y0: coords[j][1]/1000 - singleDieResults[j].widthsY[l + 1]/2,
+          y1: coords[j][1]/1000 + singleDieResults[j].widthsY[l + 1]/2
+        };
+        const area = rectangleOverlap(rect_i, rect_j);
         if (area > 0) {
           anyOverlap = true;
           const R_l = (p.layers[l].t * 1e-6) / (p.layers[l].kxy * area);
