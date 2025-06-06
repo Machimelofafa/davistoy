@@ -69,9 +69,9 @@
       </div>
     </section>
 
-    <!-- ORIGINAL SUMMARY SECTION -->
-    <div class="flexBox">
-      <div class="sumBox"><!-- summary table + curve -->
+    <!-- CORRECTED SUMMARY SECTION -->
+    <div class="flexBox" style="margin-top: 20px;">
+      <div class="summary-table-container">
         <table id="sumTbl" title="Thermal resistance summary by layer">
           <thead>
             <tr>
@@ -85,9 +85,12 @@
           </thead>
           <tbody></tbody>
         </table>
+      </div>
+      <div class="summary-graph-container">
         <svg id="cumSvg" title="Plot of cumulative resistance versus layer"></svg>
       </div>
     </div>
+
   </section>
 
   <section class="card result" id="mcResult" style="display:none">
