@@ -10,8 +10,8 @@ const $ = id => document.getElementById(id); //
 // Handles for elements in index.html
 const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
 const outDie = $('outDie'), outTot = $('outTotal'); //
-const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
-const layoutView = $('layoutView');
+const sideViewX = $('sideViewX'), sideViewY = $('sideViewY');
+const sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg');
 const resultCard = $('resultCard'); //
 const btnMonte = $('btnMonte'); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
@@ -223,8 +223,8 @@ function draw(o) {
   }
   outTot.textContent = `Total stack (all dies) = ${typeof o.rTotal === 'number' && isFinite(o.rTotal) ? o.rTotal.toFixed(3) : '-'} °C/W`; //
 
-  buildCones(o.widths, o.coords); //
-  buildLayoutView(o);
+  buildSideView('x', sideViewX, o);
+  buildSideView('y', sideViewY, o);
 
   // MODIFICATION: Pass sensitivity data along with cooler info
   buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack, o.sensitivity);
@@ -250,74 +250,128 @@ function drawMonte(o) {
   if (mcCard) mcCard.style.display = '';
 }
 
-/* ======================= 2‑D cones (SVG) ======================= */
-function buildCones(widths, coords) { //
-  cone.innerHTML = '';  //
-  if (!widths || widths.length === 0 || !Array.isArray(coords)) return; //
+/**
+ * Renders a complete side-view visualization of the thermal stack.
+ * @param {string} axis - 'x' or 'y' to determine the viewing plane.
+ * @param {HTMLElement} container - The div element to draw the SVG into.
+ * @param {Object} o - The main results object from the server.
+ */
+function buildSideView(axis, container, o) {
+  container.innerHTML = '';
+  if (!o || !o.coords || !o.widthsX || !o.widthsY) return;
 
-  const tList = [...tbl.tBodies[0].rows].map(r => +r.cells[2].firstElementChild.value / 1e6); //
-  const Hm = tList.reduce((a, b) => a + b, 0);  //
-  const maxSpread = Math.max(...widths);  //
-  const xs = coords.map(c=> (c[0]||0)/1000);
-  const minX = Math.min(...xs) - maxSpread/2;
-  const maxX = Math.max(...xs) + maxSpread/2;
-  const Wm = maxX - minX;
+  const DIE_HEIGHT_SCALE = 0.15; // Relative height of the die for visualization
+  const COOLER_HEIGHT_SCALE = 0.2; // Relative height of the cooler
 
-  if (Hm === 0 || Wm === 0 || !isFinite(Wm)) { //
-    cone.textContent = 'Cannot draw cones: invalid geometry.'; //
-    return; //
-  }
+  const layers = [...tbl.tBodies[0].rows].map(r => ({
+    t: +r.cells[2].firstElementChild.value
+  }));
+  const totalStackThickness = layers.reduce((sum, l) => sum + l.t, 0);
+  if (totalStackThickness === 0) return;
 
-  const W_svg = cone.clientWidth  || 340;  //
-  const H_svg = cone.clientHeight || 200;  //
+  const dieWidth = (axis === 'x' ? +srcWid.value : +srcLen.value);
+  const dieHeight = totalStackThickness * DIE_HEIGHT_SCALE;
+  const coolerHeight = totalStackThickness * COOLER_HEIGHT_SCALE;
 
-  const xS = W_svg / Wm;  //
-  const yS = Hm > 0 ? H_svg / Hm : 0;  //
+  // Determine the coordinate and width arrays for the current axis
+  const coords = o.coords.map(c => (axis === 'x' ? c[0] : c[1]));
+  const widths = (axis === 'x' ? o.widthsX : o.widthsY);
 
-  const svg = NS('svg', { width: W_svg, height: H_svg, viewBox: `0 0 ${W_svg} ${H_svg}`, preserveAspectRatio: 'xMidYMid meet' }); //
+  // Calculate the total scene dimensions for the SVG viewBox
+  const maxFootprint = Math.max(...widths);
+  const minCoord = Math.min(...coords);
+  const maxCoord = Math.max(...coords);
+  const sceneMin = minCoord - maxFootprint / 2;
+  const sceneMax = maxCoord + maxFootprint / 2;
+  const sceneWidth = sceneMax - sceneMin;
+  const sceneHeight = totalStackThickness + dieHeight + coolerHeight;
 
-  coords.forEach((c,idx)=>{
-    let currentY_px = 0;
-    const x0 = ( (c[0]||0)/1000 - minX ) * xS;
-    widths.slice(0,-1).forEach((wTop_m,i)=>{
-      if(i>=tList.length) return;
-      const wBottom_m = widths[i+1];
-      const h_layer_m = tList[i];
-      const h_layer_px = h_layer_m*yS;
-
-      const halfTop = wTop_m/2; const halfBot = wBottom_m/2;
-      let leftTop = x0 - halfTop*xS; let rightTop = x0 + halfTop*xS;
-      let leftBot = x0 - halfBot*xS; let rightBot = x0 + halfBot*xS;
-
-      if(idx>0){
-        const prevX = ( (coords[idx-1][0]||0)/1000 - minX ) * xS;
-        const mid = (prevX + x0)/2;
-        leftTop = Math.max(leftTop, mid);
-        leftBot = Math.max(leftBot, mid);
-      }
-      if(idx<coords.length-1){
-        const nextX = ( (coords[idx+1][0]||0)/1000 - minX ) * xS;
-        const mid = (nextX + x0)/2;
-        rightTop = Math.min(rightTop, mid);
-        rightBot = Math.min(rightBot, mid);
-      }
-
-      const yBottom_px = currentY_px + h_layer_px;
-      svg.appendChild(
-        NS('polygon',{
-          points:`${leftTop},${currentY_px} ${rightTop},${currentY_px} ${rightBot},${yBottom_px} ${leftBot},${yBottom_px}`,
-          fill:`hsl(${30 + idx*60},70%,65%)`,
-          stroke:'#222',
-          'stroke-width':'0.5',
-          'fill-opacity':'0.6'
-        })
-      );
-      currentY_px = yBottom_px;
-    });
+  const svg = NS('svg', {
+    width: '100%',
+    height: '100%',
+    viewBox: `${sceneMin} ${-dieHeight} ${sceneWidth} ${sceneHeight}`,
+    preserveAspectRatio: 'xMidYMid meet'
   });
-  cone.appendChild(svg); //
-}
 
+  // Define a gradient for the thermal cones
+  const defs = NS('defs');
+  const gradient = NS('linearGradient', { id: 'thermalGradient', x1: '0%', y1: '0%', x2: '0%', y2: '100%' });
+  gradient.innerHTML = `
+    <stop offset="0%" style="stop-color:rgb(255,80,80);stop-opacity:1" />
+    <stop offset="100%" style="stop-color:rgb(0,200,255);stop-opacity:1" />
+  `;
+  defs.appendChild(gradient);
+  svg.appendChild(defs);
+  
+  // --- Draw Layers and Cooler ---
+  let currentY = 0;
+  layers.forEach((layer, i) => {
+    svg.appendChild(NS('rect', {
+      x: sceneMin,
+      y: currentY,
+      width: sceneWidth,
+      height: layer.t,
+      fill: i % 2 === 0 ? '#E0E0E0' : '#CCCCCC'
+    }));
+    currentY += layer.t;
+  });
+  svg.appendChild(NS('rect', {
+    x: sceneMin,
+    y: totalStackThickness,
+    width: sceneWidth,
+    height: coolerHeight,
+    fill: '#a0d8f0' // Light blue for cooler
+  }));
+
+  // --- Draw Dies and Cones ---
+  o.coords.forEach((coord, dieIndex) => {
+    const centerCoord = axis === 'x' ? coord[0] : coord[1];
+    
+    // Draw the die
+    svg.appendChild(NS('rect', {
+      x: centerCoord - dieWidth / 2,
+      y: -dieHeight,
+      width: dieWidth,
+      height: dieHeight,
+      fill: '#D32F2F' // Solid red for die
+    }));
+
+    // Build and draw the thermal cone for this die
+    let yPos = 0;
+    const clipPathId = `clip-${axis}-${dieIndex}`;
+    const clipPath = NS('clipPath', { id: clipPathId });
+
+    for (let i = 0; i < layers.length; i++) {
+      const w_top = widths[i] * 1000;
+      const w_bot = widths[i + 1] * 1000;
+      const thickness = layers[i].t;
+
+      const poly = NS('polygon', {
+        points: `
+          ${centerCoord - w_top / 2},${yPos}
+          ${centerCoord + w_top / 2},${yPos}
+          ${centerCoord + w_bot / 2},${yPos + thickness}
+          ${centerCoord - w_bot / 2},${yPos + thickness}
+        `,
+      });
+      clipPath.appendChild(poly);
+      yPos += thickness;
+    }
+    svg.appendChild(clipPath);
+
+    // Create a single large rectangle that covers the whole cone area and apply the gradient and clip-path
+    svg.appendChild(NS('rect', {
+      x: centerCoord - maxFootprint / 2,
+      y: 0,
+      width: maxFootprint,
+      height: totalStackThickness,
+      fill: 'url(#thermalGradient)',
+      'clip-path': `url(#${clipPathId})`
+    }));
+  });
+
+  container.appendChild(svg);
+}
 
 /* ======================= Summary table + curve ======================= */
 // MODIFICATION: Updated signature and logic for buildSummary
