@@ -376,15 +376,6 @@ function solveSystem(G, Pvec) {
     return x;
   }
 
-  function buildResistanceMatrix(M){
-    const n=M.length;
-    const res=[];
-    for(let i=0;i<n;i++){
-      const b=Array(n).fill(0); b[i]=1;
-      res.push(solveMatrix(M,b));
-    }
-    return res;
-  }
 
   const temps = solveMatrix(G,Pvec);
   const N = Pvec.length - 1;
@@ -392,10 +383,7 @@ function solveSystem(G, Pvec) {
   const maxTemp = Math.max.apply(null, dieTemps.filter(v=>typeof v==='number'));
   const avgTemp = dieTemps.reduce((a,b)=>a+b,0)/dieTemps.length;
 
-  const rMatrix = buildResistanceMatrix(G);
-  const rPerDie = rMatrix.map((row,i)=> row[i]);
-
-  return { dieTemps, maxTemp, avgTemp, rMatrix, rPerDie };
+  return { dieTemps, maxTemp, avgTemp };
 }
 
 /**
@@ -450,9 +438,7 @@ function coreSolve(p) {
     rCoolPerDie: rCool,
     rStack,
     rDieList: sys.dieTemps,
-    rDieAvg: sys.avgTemp,
-    rMatrix: sys.rMatrix,
-    rPerDie: sys.rPerDie
+    rDieAvg: sys.avgTemp
   };
 }
 function computeSensitivity(p, baseR) {
