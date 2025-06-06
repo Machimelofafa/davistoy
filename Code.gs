@@ -201,7 +201,7 @@ function coreSolve(p) {
   }
 
   const numLayers = p.layers.length;
-  const G = Array.from({ length: N }, () => Array(N).fill(0));
+  let G = Array.from({ length: N }, () => Array(N).fill(0));
   for (let i = 0; i < N; i++) {
     for (let j = i + 1; j < N; j++) {
       const d_ij = distanceInMeters(coords[i], coords[j]);
