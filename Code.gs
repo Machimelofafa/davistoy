@@ -142,34 +142,57 @@ function solveSingleDieStack(p1) {
 
 /**
  * Calculate die coordinates for a given layout.
+ * @param {string} layout - The name of the layout ('line', '2-lines', '2-linesQ', 'custom').
+ * @param {number} n - The number of dies.
+ * @param {number} spacing - The center-to-center spacing in mm.
+ * @param {string} custom - The custom coordinate string.
+ * @returns {Array<Array<number>>} An array of [x,y] coordinates for each die.
  */
 function getCoords(layout, n, spacing, custom) {
   const arr = [];
   const s = typeof spacing === 'number' ? spacing : 0;
-  if (layout === 'square' && n >= 1) {
-    const d = s / 2;
-    arr.push([-d, -d]);
-    if (n >= 2) arr.push([d, -d]);
-    if (n >= 3) arr.push([-d, d]);
-    if (n >= 4) arr.push([d, d]);
-    // For dies 5 and up, place them linearly
-    for (let i = 4; i < n; i++) arr.push([(i - 1.5) * s, 0]);
-  } else if (layout === 'diamond' && n >= 1) {
-    const d = s / 2;
-    arr.push([0, -d]);
-    if (n >= 2) arr.push([-d, 0]);
-    if (n >= 3) arr.push([0, d]);
-    if (n >= 4) arr.push([d, 0]);
-    // For dies 5 and up, place them linearly
-    for (let i = 4; i < n; i++) arr.push([(i - 1.5) * s, 0]);
-  } else if (layout === 'custom' && typeof custom === 'string') {
-    custom.split(';').forEach(p => {
-      const parts = p.split(',');
-      if (parts.length === 2) arr.push([parseFloat(parts[0]) || 0, parseFloat(parts[1]) || 0]);
-    });
-    while (arr.length < n) arr.push([0, 0]);
-  } else { // Default to 'line' layout
-    for (let i = 0; i < n; i++) arr.push([i * s, 0]);
+  const s_half = s / 2;
+
+  switch (layout) {
+    case '2-lines':
+      for (let i = 0; i < n; i++) {
+        const row = Math.floor(i / 2); // 0 for top row, 1 for bottom row
+        const col = i % 2;
+        const x = row * s;
+        const y = col * s - s_half;
+        arr.push([x, y]);
+      }
+      break;
+
+    case '2-linesQ': // Quincunx/staggered
+      for (let i = 0; i < n; i++) {
+        const row = Math.floor(i / 2);
+        const col = i % 2;
+        const x = row * s + (col * s_half); // Stagger x
+        const y = col * s - s_half;
+        arr.push([x, y]);
+      }
+      break;
+
+    case 'custom':
+      if (typeof custom === 'string' && custom.length > 0) {
+        custom.split(';').forEach(p => {
+          const parts = p.split(',');
+          if (parts.length === 2) {
+            arr.push([parseFloat(parts[0]) || 0, parseFloat(parts[1]) || 0]);
+          }
+        });
+      }
+      // Pad with default coords if not enough were provided
+      while (arr.length < n) arr.push([arr.length * s, 0]);
+      break;
+
+    case 'line':
+    default:
+      for (let i = 0; i < n; i++) {
+        arr.push([i * s, 0]);
+      }
+      break;
   }
   return arr.slice(0, n);
 }
