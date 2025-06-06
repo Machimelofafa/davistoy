@@ -12,9 +12,7 @@ const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
 const outDie = $('outDie'), outTot = $('outTotal'); //
 const cone = $('cone'), sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg'); //
 const layoutView = $('layoutView');
-const matTbl = $('matTbl'), matHdr = $('matHdr');
 const resultCard = $('resultCard'); //
-const btnExport = $('btnExport'); //
 const btnMonte = $('btnMonte'); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
 const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
@@ -219,7 +217,7 @@ function draw(o) {
   let dieTxt = '-';
   if (typeof o.rDie === 'number' && isFinite(o.rDie)) dieTxt = o.rDie.toFixed(2);
   if (Array.isArray(o.rDieList) && o.rDieList.length > 1 && typeof o.rDieAvg === 'number') {
-    outDie.textContent = `\u0394T / die (max) = ${dieTxt} \xB0C, avg ${o.rDieAvg.toFixed(2)}`;
+    outDie.textContent = `\u0394T / die (max) = ${dieTxt} \xB0C, avg ${o.rDieAvg.toFixed(2)} \xB0C`;
   } else {
     outDie.textContent = `\u0394T / die = ${dieTxt} \xB0C`;
   }
@@ -230,7 +228,6 @@ function draw(o) {
 
   // MODIFICATION: Pass sensitivity data along with cooler info
   buildSummary(o.rEach, o.rCum, o.lengths, o.numDies, o.rCoolPerDie, o.rTotal, o.rStack, o.sensitivity);
-  buildMatrix(o.rMatrix);
 
   if (resultCard) { //
     resultCard.style.display = '';  //
@@ -428,23 +425,6 @@ function buildSummary(rEach, rCumulative, lengthsFromServer, numDies, rCoolPerDi
   }
 }
 
-/* ======================= Resistance matrix table ======================= */
-function buildMatrix(mat){
-  if(!matTbl) return;
-  const body = matTbl.tBodies[0];
-  body.innerHTML='';
-  if(!Array.isArray(mat) || mat.length===0) return;
-  const n = mat.length;
-  matHdr.innerHTML='<th></th>' + Array.from({length:n},(_,i)=>`<th>D${i+1}</th>`).join('');
-  for(let i=0;i<n;i++){
-    const row = body.insertRow();
-    row.insertCell().textContent=`D${i+1}`;
-    for(let j=0;j<n;j++){
-      const v = mat[i][j];
-      row.insertCell().textContent=(typeof v==='number' && isFinite(v))?v.toFixed(3):'-';
-    }
-  }
-}
 
 /* ======================= Aqua line graph (Cumulative Rth) ======================= */
 function buildCurve(cumulativeRth) { //
@@ -452,8 +432,8 @@ function buildCurve(cumulativeRth) { //
   if (!cumulativeRth || cumulativeRth.length === 0) return; //
 
   const numLayers = cumulativeRth.length; //
-  const W_svg = 260;  //
-  const H_svg = 140;  //
+  const W_svg = cumSvg.clientWidth || 500;  //
+  const H_svg = cumSvg.clientHeight || 180;  //
   const margin = { left: 46, right: 10, top: 10, bottom: 30 }; //
 
   const plotW = W_svg - margin.left - margin.right; //
@@ -482,7 +462,7 @@ function buildCurve(cumulativeRth) { //
       const tickValue = (maxRthValue * t) / numYTicks; //
       const y = yPos(tickValue); //
       cumSvg.appendChild(NS('line', { x1: margin.left - 4, y1: y, x2: margin.left, y2: y, stroke: '#888' })); //
-      const yText = NS('text', { x: margin.left - 7, y: y + 4, 'text-anchor': 'end', fill: '#9ED1F5', 'font-size': '10px' }); //
+      const yText = NS('text', { x: margin.left - 7, y: y + 4, 'text-anchor': 'end', fill: '#9ED1F5', 'font-size': '12px' }); //
       yText.appendChild(document.createTextNode(tickValue.toFixed(2))); //
       cumSvg.appendChild(yText); //
     }
@@ -491,7 +471,7 @@ function buildCurve(cumulativeRth) { //
   for (let i = 0; i < numLayers; i++) { //
     const x = xPos(i); //
     cumSvg.appendChild(NS('line', { x1: x, y1: H_svg - margin.bottom, x2: x, y2: H_svg - margin.bottom + 4, stroke: '#888' })); //
-    const xText = NS('text', { x: x, y: H_svg - margin.bottom + 16, 'text-anchor': 'middle', fill: '#9ED1F5', 'font-size': '10px' }); //
+    const xText = NS('text', { x: x, y: H_svg - margin.bottom + 16, 'text-anchor': 'middle', fill: '#9ED1F5', 'font-size': '12px' }); //
     xText.appendChild(document.createTextNode(`L${i + 1}`)); //
     cumSvg.appendChild(xText); //
   }
@@ -499,14 +479,14 @@ function buildCurve(cumulativeRth) { //
   const yAxisTitle = NS('text', { //
     x: margin.left - 35, y: margin.top + plotH / 2, //
     transform: `rotate(-90 ${margin.left - 35} ${margin.top + plotH / 2})`, //
-    fill: '#9ED1F5', 'font-size': '11px', 'text-anchor': 'middle' //
+    fill: '#9ED1F5', 'font-size': '13px', 'text-anchor': 'middle' //
   });
   yAxisTitle.appendChild(document.createTextNode('Cum. Rth (°C/W)')); //
   cumSvg.appendChild(yAxisTitle); //
 
   const xAxisTitle = NS('text', { //
     x: margin.left + plotW / 2, y: H_svg - 5, //
-    fill: '#9ED1F5', 'font-size': '11px', 'text-anchor': 'middle' //
+    fill: '#9ED1F5', 'font-size': '13px', 'text-anchor': 'middle' //
   });
   xAxisTitle.appendChild(document.createTextNode('Layer')); //
   cumSvg.appendChild(xAxisTitle); //
@@ -631,28 +611,12 @@ function NS(tag, attrs) { //
   return el; //
 }
 
-/* ======================= Export results ======================= */
-function exportResults() { //
-  const table = $('sumTbl'); //
-  if (!table) return; //
-  const rows = [...table.rows]; //
-  const csv = rows.map(r => [...r.cells].map(c => '"' + c.textContent + '"').join(',')).join('\n'); //
-  const blob = new Blob([csv], {type: 'text/csv'}); //
-  const url = URL.createObjectURL(blob); //
-  const a = document.createElement('a'); //
-  a.href = url; //
-  a.download = 'rth_results.csv'; //
-  document.body.appendChild(a); //
-  a.click(); //
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0); //
-}
 
 /* ======================= Initial setup ======================= */
 document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow(); //
   if (btnRun) btnRun.onclick = runCalc; //
   if (btnMonte) btnMonte.onclick = runMonte; //
-  if (btnExport) btnExport.onclick = exportResults; //
   if (btnReadme) btnReadme.onclick = toggleReadme; //
   if (themeToggle) themeToggle.onclick = toggleTheme; //
   if (coolSel) coolSel.onchange = updateCoolerVisibility; //
