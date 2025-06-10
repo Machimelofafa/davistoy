@@ -16,8 +16,6 @@ const resultCard = $('resultCard'); //
 const btnMonte = $("btnMonte"), btnSave = $("btnSave"), btnLoad = $("btnLoad"); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
 const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
-const btnSweep = $('btnSweep'); // new sweep button
-const sweepCard = $('sweepResultCard'), sweepSvg = $('sweepChart'); // result container
 const btnReadme = $('btnReadme'), readmeDiv = $('readmeDiv'); //
 const themeToggle = $('themeToggle'); //
 const loader = $('loader'), errorBox = $('errorBox'); //
@@ -29,9 +27,6 @@ const dieSpacingX = $('dieSpacingX'), dieSpacingY = $('dieSpacingY'); // new han
 const dieLayout = $('dieLayout'), customCoords = $('customCoords'); //
 const coolSel = $('coolSel'), directBox = $('directBox'), convBox = $('convBox'); //
 const coolRth = $('coolRth'), hConv = $('hConv'), coolTemp = $('coolTemp'); //
-const sweepEnabled = $('sweepEnabled'), sweepControls = $('sweepControls'); //
-const sweepLayer = $('sweepLayer'), sweepParam = $('sweepParam'); //
-const sweepStart = $('sweepStart'), sweepEnd = $('sweepEnd'), sweepSteps = $('sweepSteps'); //
 
 /* ======================= Row helpers ======================= */
 function addRow(p = {}) { //
@@ -66,12 +61,6 @@ function updateLayoutVisibility() { //
   const show = dieLayout.value === 'custom'; //
   const box = $('coordBox'); //
   if (box) box.classList.toggle('hide', !show); //
-}
-
-function updateSweepVisibility() { //
-  if (!sweepEnabled) return; //
-  const show = sweepEnabled.checked; //
-  if (sweepControls) sweepControls.classList.toggle('hide', !show); //
 }
 
 function toggleReadme() { //
@@ -109,12 +98,6 @@ function saveStack() {
     mcIter: +mcIter.value,
     mcUncT: +mcUncT.value,
     mcUncK: +mcUncK.value,
-    sweepLayer: +sweepLayer.value,
-    sweepParam: sweepParam.value,
-    sweepStart: +sweepStart.value,
-    sweepEnd: +sweepEnd.value,
-    sweepSteps: +sweepSteps.value,
-    sweepEnabled: sweepEnabled ? sweepEnabled.checked : false,
     layers: [...tbl.tBodies[0].rows].map(r => ({
       mat: r.cells[1].firstElementChild.value,
       t:   +r.cells[2].firstElementChild.value,
@@ -156,12 +139,6 @@ function loadStack() {
     mcIter.value = data.mcIter || 200;
     mcUncT.value = data.mcUncT || 5;
     mcUncK.value = data.mcUncK || 5;
-    if (sweepLayer) sweepLayer.value = data.sweepLayer || 1;
-    if (sweepParam) sweepParam.value = data.sweepParam || 't';
-    if (sweepStart) sweepStart.value = data.sweepStart || 0;
-    if (sweepEnd) sweepEnd.value = data.sweepEnd || 0;
-    if (sweepSteps) sweepSteps.value = data.sweepSteps || 5;
-    if (sweepEnabled) sweepEnabled.checked = data.sweepEnabled || false;
     
     // Clear existing table and load layers
     tbl.tBodies[0].innerHTML = '';
@@ -172,7 +149,6 @@ function loadStack() {
     // Update UI visibility based on loaded data
     updateCoolerVisibility();
     updateLayoutVisibility();
-    updateSweepVisibility();
 
   } catch (e) {
     console.error('Error loading from localStorage:', e);
@@ -301,80 +277,8 @@ function runMonte() { //
       diePower:  +diePower.value,
       iterations: +mcIter.value,
       uncT:       +mcUncT.value / 100,
-    uncK:       +mcUncK.value / 100,
-    layers
-  });
-}
-
-function runSweepAnalysis() { //
-  if (!sweepEnabled || !sweepEnabled.checked) { //
-    alert('Enable Sweep Analysis first'); //
-    return; //
-  }
-  const rows = [...tbl.tBodies[0].rows]; //
-  if (!rows.length) { //
-    alert('Add a layer first'); //
-    return; //
-  }
-  const layers = rows.map(r => ({ //
-    mat: r.cells[1].firstElementChild.value, //
-    t:   +r.cells[2].firstElementChild.value, //
-    kxy: +r.cells[3].firstElementChild.value, //
-    kz:  +r.cells[4].firstElementChild.value //
-  }));
-
-  const layerIdx = +sweepLayer.value - 1; //
-  const steps = Math.max(2, +sweepSteps.value);
-  const startVal = +sweepStart.value;
-  const endVal = +sweepEnd.value;
-  if (layerIdx < 0 || layerIdx >= layers.length) { //
-    alert('Invalid layer number for sweep'); //
-    return; //
-  }
-  if (endVal <= startVal) { //
-    alert('End value must be greater than start value'); //
-    return; //
-  }
-
-  if(btnSweep) btnSweep.disabled = true; //
-  if(loader) loader.style.display = 'flex'; //
-  if(errorBox) errorBox.style.display = 'none'; //
-  if(sweepCard) sweepCard.style.display = 'none'; //
-
-  google.script.run
-    .withSuccessHandler(res => { //
-      if(loader) loader.style.display = 'none'; //
-      if(btnSweep) btnSweep.disabled = false; //
-      if(errorBox) errorBox.style.display = 'none'; //
-      drawSweepChart(res); //
-    })
-    .withFailureHandler(err => { //
-      if(loader) loader.style.display = 'none'; //
-      if(btnSweep) btnSweep.disabled = false; //
-      if(errorBox) { //
-        errorBox.textContent = 'Error calculating: ' + (err.message || err); //
-        errorBox.style.display = 'block'; //
-      } //
-      console.error('Sweep error:', err); //
-    })
-    .solveSweep({ //
-      srcLen: +srcLen.value,
-      srcWid: +srcWid.value,
-      dies:   +dies.value,
-      spacingX: +dieSpacingX.value,
-      spacingY: +dieSpacingY.value,
-      layout: dieLayout ? dieLayout.value : 'line',
-      coords: customCoords ? customCoords.value : '',
-      coolerMode: coolSel.value,
-      coolerRth:  +coolRth.value,
-      hConv:      +hConv.value,
-      diePower:  +diePower.value,
-      layers,
-      sweepLayer: layerIdx + 1,
-      sweepParam: sweepParam.value,
-      sweepStart: startVal,
-      sweepEnd:   endVal,
-      sweepSteps: steps
+      uncK:       +mcUncK.value / 100,
+      layers
     });
 }
 
@@ -749,47 +653,6 @@ function buildHistogram(vals) {
   });
 }
 
-function drawSweepChart(data) {
-  sweepSvg.innerHTML = '';
-  if (!Array.isArray(data) || data.length === 0) return;
-
-  const xVals = data.map(d => d.sweptValue);
-  const yVals = data.map(d => d.resultValue);
-  const minX = Math.min(...xVals);
-  const maxX = Math.max(...xVals);
-  const minY = Math.min(...yVals);
-  const maxY = Math.max(...yVals);
-
-  const W = sweepSvg.clientWidth || 400;
-  const H = sweepSvg.clientHeight || 220;
-  const margin = { left: 50, right: 15, top: 20, bottom: 35 };
-  const plotW = W - margin.left - margin.right;
-  const plotH = H - margin.top - margin.bottom;
-
-  const xPos = v => margin.left + ((v - minX) / (maxX - minX)) * plotW;
-  const yPos = v => margin.top + plotH - ((v - minY) / (maxY - minY)) * plotH;
-
-  sweepSvg.setAttribute('width', W);
-  sweepSvg.setAttribute('height', H);
-  sweepSvg.appendChild(NS('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: H - margin.bottom, stroke: '#888', 'stroke-width': '1' }));
-  sweepSvg.appendChild(NS('line', { x1: margin.left, y1: H - margin.bottom, x2: W - margin.right, y2: H - margin.bottom, stroke: '#888', 'stroke-width': '1' }));
-
-  const points = data.map(d => `${xPos(d.sweptValue)},${yPos(d.resultValue)}`).join(' ');
-  sweepSvg.appendChild(NS('polyline', { points, fill: 'none', stroke: '#4FC3F7', 'stroke-width': '2' }));
-
-  const xLabel = NS('text', { x: margin.left + plotW / 2, y: H - 5, 'text-anchor': 'middle', fill: '#9ED1F5', 'font-size': '13px' });
-  const paramName = sweepParam.options[sweepParam.selectedIndex].text;
-  const unit = sweepParam.value === 't' ? 'µm' : 'W/(m·K)';
-  xLabel.appendChild(document.createTextNode(`Layer ${sweepLayer.value} ${paramName} (${unit})`));
-  sweepSvg.appendChild(xLabel);
-
-  const yLabel = NS('text', { x: margin.left - 35, y: margin.top + plotH / 2, transform: `rotate(-90 ${margin.left - 35} ${margin.top + plotH / 2})`, 'text-anchor': 'middle', fill: '#9ED1F5', 'font-size': '13px' });
-  yLabel.appendChild(document.createTextNode('Max \u0394T (\u00B0C)'));
-  sweepSvg.appendChild(yLabel);
-
-  if (sweepCard) sweepCard.style.display = '';
-}
-
 function buildLayoutView(o) {
   if (!layoutView || !o.coords || !o.widthsX || !o.widthsY) {
     if (layoutView) layoutView.innerHTML = '';
@@ -880,14 +743,12 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow();
   if (btnRun) btnRun.onclick = runCalc;
   if (btnMonte) btnMonte.onclick = runMonte;
-  if (btnSweep) btnSweep.onclick = runSweepAnalysis;
   if (btnSave) btnSave.onclick = saveStack;
   if (btnLoad) btnLoad.onclick = loadStack;
   if (btnReadme) btnReadme.onclick = toggleReadme;
   if (themeToggle) themeToggle.onclick = toggleTheme;
   if (coolSel) coolSel.onchange = updateCoolerVisibility;
   if (dieLayout) dieLayout.onchange = updateLayoutVisibility;
-  if (sweepEnabled) sweepEnabled.onchange = updateSweepVisibility;
 
   // Attempt to load from localStorage first
   const savedData = localStorage.getItem('rthStackV3');
@@ -908,10 +769,6 @@ document.addEventListener('DOMContentLoaded', () => { //
     if (mcIter) mcIter.value = '200';
     if (mcUncT) mcUncT.value = '5';
     if (mcUncK) mcUncK.value = '5';
-    if (sweepLayer) sweepLayer.value = '1';
-    if (sweepStart) sweepStart.value = '0';
-    if (sweepEnd) sweepEnd.value = '0';
-    if (sweepSteps) sweepSteps.value = '5';
 
     const initialLayers = [
       { mat: "Die attach", t: 30, kxy: 198, kz: 198 },
@@ -928,10 +785,8 @@ document.addEventListener('DOMContentLoaded', () => { //
   // Initial UI setup
   updateCoolerVisibility();
   updateLayoutVisibility();
-  updateSweepVisibility();
   if (resultCard) resultCard.style.display = 'none';
   if (mcCard) mcCard.style.display = 'none';
-  if (sweepCard) sweepCard.style.display = 'none';
   
   try {
     const savedTheme = localStorage.getItem('theme');
