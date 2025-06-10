@@ -567,6 +567,37 @@ function solveMonteCarlo(p) {
   };
 }
 
+function solveSweep(p) {
+  validatePayload(p);
+  const layerIdx = Math.max(0, Math.floor(p.targetLayer || 0));
+  const param = String(p.targetParam || 't');
+  const start = Number(p.startVal);
+  const end = Number(p.endVal);
+  const steps = Math.max(2, Math.floor(p.steps || 2));
+  const results = [];
+  for (let i = 0; i < steps; i++) {
+    const val = start + (end - start) * i / (steps - 1);
+    const layersCopy = p.layers.map(l => ({ mat:l.mat, t:l.t, kxy:l.kxy, kz:l.kz }));
+    if (layersCopy[layerIdx]) layersCopy[layerIdx][param] = val;
+    const r = coreSolve({
+      srcLen: p.srcLen,
+      srcWid: p.srcWid,
+      dies:   p.dies,
+      spacingX: p.spacingX,
+      spacingY: p.spacingY,
+      layout:  p.layout,
+      coords:  p.coords,
+      coolerMode: p.coolerMode,
+      coolerRth:  p.coolerRth,
+      hConv:      p.hConv,
+      diePower:  p.diePower,
+      layers: layersCopy
+    });
+    results.push({ sweptValue: val, resultValue: r.rTotal });
+  }
+  return results;
+}
+
 /* ====================================================================================================
    UI bootstrap helpers (doGet, inc) - These functions remain unchanged.
    ==================================================================================================== */

@@ -13,7 +13,8 @@ const outDie = $('outDie'), outTdie = $('outTdie'), outTot = $('outTotal'); //
 const sideViewX = $('sideViewX'), sideViewY = $('sideViewY'), layoutView = $('layoutView');
 const sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg');
 const resultCard = $('resultCard'); //
-const btnMonte = $("btnMonte"), btnSave = $("btnSave"), btnLoad = $("btnLoad"); //
+const sweepResultCard = $('sweepResultCard'), sweepChart = $('sweepChart'); //
+const btnMonte = $("btnMonte"), btnSweep = $("btnSweep"), btnSave = $("btnSave"), btnLoad = $("btnLoad"); //
 const mcIter = $('mcIter'), mcUncT = $('mcUncT'), mcUncK = $('mcUncK'); //
 const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
 const btnReadme = $('btnReadme'), readmeDiv = $('readmeDiv'); //
@@ -27,6 +28,9 @@ const dieSpacingX = $('dieSpacingX'), dieSpacingY = $('dieSpacingY'); // new han
 const dieLayout = $('dieLayout'), customCoords = $('customCoords'); //
 const coolSel = $('coolSel'), directBox = $('directBox'), convBox = $('convBox'); //
 const coolRth = $('coolRth'), hConv = $('hConv'), coolTemp = $('coolTemp'); //
+const sweepEnable = $('sweepEnable'), sweepConfig = $('sweepConfig'); //
+const sweepLayer = $('sweepLayer'), sweepParam = $('sweepParam'); //
+const sweepStart = $('sweepStart'), sweepEnd = $('sweepEnd'), sweepSteps = $('sweepSteps'); //
 
 /* ======================= Row helpers ======================= */
 function addRow(p = {}) { //
@@ -61,6 +65,11 @@ function updateLayoutVisibility() { //
   const show = dieLayout.value === 'custom'; //
   const box = $('coordBox'); //
   if (box) box.classList.toggle('hide', !show); //
+}
+
+function updateSweepVisibility() { //
+  if (!sweepEnable || !sweepConfig) return; //
+  sweepConfig.classList.toggle('hide', !sweepEnable.checked); //
 }
 
 function toggleReadme() { //
@@ -195,6 +204,7 @@ function runCalc() { //
   if(btnRun) btnRun.disabled = true; //
   if(errorBox) errorBox.style.display = 'none'; //
   if(resultCard) resultCard.style.display = 'none';  //
+  if(sweepResultCard) sweepResultCard.style.display = 'none'; //
 
   google.script.run //
     .withSuccessHandler(response => { //
@@ -279,6 +289,73 @@ function runMonte() { //
       uncT:       +mcUncT.value / 100,
       uncK:       +mcUncK.value / 100,
       layers
+    });
+}
+
+function runSweepAnalysis() { //
+  if (!sweepEnable || !sweepEnable.checked) {
+    alert('Enable Sweep Analysis first.');
+    return;
+  }
+  const rows = [...tbl.tBodies[0].rows];
+  if (!rows.length) {
+    alert('Add a layer first');
+    return;
+  }
+  const layers = rows.map(r => ({
+    mat: r.cells[1].firstElementChild.value,
+    t:   +r.cells[2].firstElementChild.value,
+    kxy: +r.cells[3].firstElementChild.value,
+    kz:  +r.cells[4].firstElementChild.value
+  }));
+
+  const startVal = +sweepStart.value;
+  const endVal   = +sweepEnd.value;
+  const steps    = Math.max(2, +sweepSteps.value);
+  if (endVal <= startVal) {
+    alert('End value must be greater than start value');
+    return;
+  }
+
+  if(loader) loader.style.display = 'flex';
+  if(btnSweep) btnSweep.disabled = true;
+  if(errorBox) errorBox.style.display = 'none';
+  if(sweepResultCard) sweepResultCard.style.display = 'none';
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if(loader) loader.style.display = 'none';
+      if(btnSweep) btnSweep.disabled = false;
+      if(errorBox) errorBox.style.display = 'none';
+      drawSweepChart(res);
+    })
+    .withFailureHandler(err => {
+      if(loader) loader.style.display = 'none';
+      if(btnSweep) btnSweep.disabled = false;
+      if(errorBox) {
+        errorBox.textContent = 'Error calculating: ' + (err.message || err);
+        errorBox.style.display = 'block';
+      }
+      console.error('Sweep error:', err);
+    })
+    .solveSweep({
+      srcLen: +srcLen.value,
+      srcWid: +srcWid.value,
+      dies:   +dies.value,
+      spacingX: +dieSpacingX.value,
+      spacingY: +dieSpacingY.value,
+      layout: dieLayout ? dieLayout.value : 'line',
+      coords: customCoords ? customCoords.value : '',
+      coolerMode: coolSel.value,
+      coolerRth:  +coolRth.value,
+      hConv:      +hConv.value,
+      diePower:  +diePower.value,
+      layers,
+      targetLayer: +sweepLayer.value - 1,
+      targetParam: sweepParam.value,
+      startVal,
+      endVal,
+      steps
     });
 }
 
@@ -653,6 +730,54 @@ function buildHistogram(vals) {
   });
 }
 
+function drawSweepChart(data) {
+  if (!sweepChart) return;
+  sweepChart.innerHTML = '';
+  if (!Array.isArray(data) || data.length === 0) return;
+  const W = sweepChart.clientWidth || 500;
+  const H = sweepChart.clientHeight || 200;
+  const margin = { left: 50, right: 20, top: 20, bottom: 40 };
+  const plotW = W - margin.left - margin.right;
+  const plotH = H - margin.top - margin.bottom;
+  const xVals = data.map(d => d.sweptValue);
+  const yVals = data.map(d => d.resultValue);
+  const minX = Math.min(...xVals);
+  const maxX = Math.max(...xVals);
+  const minY = Math.min(...yVals);
+  const maxY = Math.max(...yVals);
+  const xPos = v => margin.left + (maxX - minX ? ((v - minX) / (maxX - minX)) * plotW : plotW/2);
+  const yPos = v => margin.top + plotH - (maxY - minY ? ((v - minY) / (maxY - minY)) * plotH : plotH/2);
+
+  sweepChart.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  sweepChart.appendChild(NS('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: H - margin.bottom, stroke: '#888' }));
+  sweepChart.appendChild(NS('line', { x1: margin.left, y1: H - margin.bottom, x2: W - margin.right, y2: H - margin.bottom, stroke: '#888' }));
+
+  const points = data.map(d => `${xPos(d.sweptValue)},${yPos(d.resultValue)}`).join(' ');
+  sweepChart.appendChild(NS('polyline', { points, fill: 'none', stroke: '#4FC3F7', 'stroke-width': '2' }));
+
+  const xTitle = sweepParam ? sweepParam.options[sweepParam.selectedIndex].text : '';
+  const layerNum = sweepLayer ? sweepLayer.value : '1';
+  const xAxisTitle = NS('text', { x: margin.left + plotW/2, y: H - 5, 'text-anchor': 'middle', fill:'#9ED1F5' });
+  xAxisTitle.textContent = `Layer ${layerNum} ${xTitle}`;
+  sweepChart.appendChild(xAxisTitle);
+
+  const yAxisTitle = NS('text', { x: 15, y: margin.top + plotH/2, transform:`rotate(-90 15 ${margin.top + plotH/2})`, 'text-anchor':'middle', fill:'#9ED1F5' });
+  yAxisTitle.textContent = 'Rth (total stack) °C/W';
+  sweepChart.appendChild(yAxisTitle);
+
+  data.forEach(d => {
+    const tx = xPos(d.sweptValue);
+    const ty = yPos(d.resultValue);
+    sweepChart.appendChild(NS('circle', { cx: tx, cy: ty, r: 3, fill: '#ff5722' }));
+    const lbl = NS('text', { x: tx, y: ty - 6, 'text-anchor':'middle', fill:'#9ED1F5', 'font-size':'11px' });
+    lbl.textContent = d.resultValue.toFixed(2);
+    sweepChart.appendChild(lbl);
+  });
+
+  if (sweepResultCard) sweepResultCard.style.display = '';
+}
+
 function buildLayoutView(o) {
   if (!layoutView || !o.coords || !o.widthsX || !o.widthsY) {
     if (layoutView) layoutView.innerHTML = '';
@@ -743,12 +868,14 @@ document.addEventListener('DOMContentLoaded', () => { //
   if (btnAdd) btnAdd.onclick = () => addRow();
   if (btnRun) btnRun.onclick = runCalc;
   if (btnMonte) btnMonte.onclick = runMonte;
+  if (btnSweep) btnSweep.onclick = runSweepAnalysis;
   if (btnSave) btnSave.onclick = saveStack;
   if (btnLoad) btnLoad.onclick = loadStack;
   if (btnReadme) btnReadme.onclick = toggleReadme;
   if (themeToggle) themeToggle.onclick = toggleTheme;
   if (coolSel) coolSel.onchange = updateCoolerVisibility;
   if (dieLayout) dieLayout.onchange = updateLayoutVisibility;
+  if (sweepEnable) sweepEnable.onchange = updateSweepVisibility;
 
   // Attempt to load from localStorage first
   const savedData = localStorage.getItem('rthStackV3');
@@ -785,7 +912,9 @@ document.addEventListener('DOMContentLoaded', () => { //
   // Initial UI setup
   updateCoolerVisibility();
   updateLayoutVisibility();
+  updateSweepVisibility();
   if (resultCard) resultCard.style.display = 'none';
+  if (sweepResultCard) sweepResultCard.style.display = 'none';
   if (mcCard) mcCard.style.display = 'none';
   
   try {
