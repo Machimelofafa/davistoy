@@ -38,19 +38,6 @@
 </section>
 
 <section class="card inline">
-  <h2>Monte Carlo</h2>
-  <label title="Number of random simulations to run">Iterations
-    <input id="mcIter" type="number" min="1" value="200">
-  </label>
-  <label title="Percentage deviation applied to thickness in simulations">t&nbsp;uncertainty&nbsp;[%]
-    <input id="mcUncT" type="number" step="0.1" value="5">
-  </label>
-  <label title="Percentage deviation applied to conductivities in simulations">k&nbsp;uncertainty&nbsp;[%]
-    <input id="mcUncK" type="number" step="0.1" value="5">
-  </label>
-</section>
-
-<section class="card inline">
   <h2>Cooler / base</h2>
 
   <label title="Method used to model the cooler or base">
@@ -79,3 +66,16 @@
       <input id="coolTemp" type="number" value="55">
     </label>
   </section>
+
+<section class="card inline">
+  <h2>Monte Carlo</h2>
+  <label title="Number of random simulations to run">Iterations
+    <input id="mcIter" type="number" min="1" value="200">
+  </label>
+  <label title="Percentage deviation applied to thickness in simulations">t&nbsp;uncertainty&nbsp;[%]
+    <input id="mcUncT" type="number" step="0.1" value="5">
+  </label>
+  <label title="Percentage deviation applied to conductivities in simulations">k&nbsp;uncertainty&nbsp;[%]
+    <input id="mcUncK" type="number" step="0.1" value="5">
+  </label>
+</section>
