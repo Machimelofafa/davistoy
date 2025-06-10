@@ -9,7 +9,7 @@ const $ = id => document.getElementById(id); //
 
 // Handles for elements in index.html
 const tbl = $('layerTbl'), btnAdd = $('btnAdd'), btnRun = $('btnCalc'); //
-const outDie = $('outDie'), outTot = $('outTotal'); //
+const outDie = $('outDie'), outTdie = $('outTdie'), outTot = $('outTotal'); //
 const sideViewX = $('sideViewX'), sideViewY = $('sideViewY'), layoutView = $('layoutView');
 const sumBody = $('sumTbl').tBodies[0], cumSvg = $('cumSvg');
 const resultCard = $('resultCard'); //
@@ -25,7 +25,7 @@ const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
 const diePower = $('diePower'); // new handle for power input
 const dieSpacing = $('dieSpacing'), dieLayout = $('dieLayout'), customCoords = $('customCoords'); //
 const coolSel = $('coolSel'), directBox = $('directBox'), convBox = $('convBox'); //
-const coolRth = $('coolRth'), hConv = $('hConv'); //
+const coolRth = $('coolRth'), hConv = $('hConv'), coolTemp = $('coolTemp'); //
 
 /* ======================= Row helpers ======================= */
 function addRow(p = {}) { //
@@ -92,6 +92,7 @@ function saveStack() {
     coolerMode: coolSel.value,
     coolerRth: +coolRth.value,
     hConv: +hConv.value,
+    coolTemp: +coolTemp.value,
     mcIter: +mcIter.value,
     mcUncT: +mcUncT.value,
     mcUncK: +mcUncK.value,
@@ -130,6 +131,7 @@ function loadStack() {
     coolSel.value = data.coolerMode || 'conv';
     coolRth.value = data.coolerRth || 0.30;
     hConv.value = data.hConv || 38500;
+    coolTemp.value = data.coolTemp || 55;
     
     mcIter.value = data.mcIter || 200;
     mcUncT.value = data.mcUncT || 5;
@@ -291,6 +293,12 @@ function draw(o) {
   } else {
     outDie.textContent = `\u0394T / die = ${dieTxt} \xB0C`;
   }
+  let tDieTxt = '-';
+  const cTemp = parseFloat(coolTemp.value);
+  if (!isNaN(cTemp) && typeof o.rDie === 'number' && isFinite(o.rDie)) {
+    tDieTxt = (cTemp + o.rDie).toFixed(2);
+  }
+  if (outTdie) outTdie.textContent = `Tdie (max) = ${tDieTxt} \xB0C`;
   outTot.textContent = `Total stack (all dies) = ${typeof o.rTotal === 'number' && isFinite(o.rTotal) ? o.rTotal.toFixed(3) : '-'} °C/W`; //
 
   buildSideView('x', sideViewX, o);
