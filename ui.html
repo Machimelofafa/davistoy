@@ -23,7 +23,8 @@ const loader = $('loader'), errorBox = $('errorBox'); //
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
 const diePower = $('diePower'); // new handle for power input
-const dieSpacing = $('dieSpacing'), dieLayout = $('dieLayout'), customCoords = $('customCoords'); //
+const dieSpacingX = $('dieSpacingX'), dieSpacingY = $('dieSpacingY'); // new handles for spacing inputs
+const dieLayout = $('dieLayout'), customCoords = $('customCoords'); //
 const coolSel = $('coolSel'), directBox = $('directBox'), convBox = $('convBox'); //
 const coolRth = $('coolRth'), hConv = $('hConv'), coolTemp = $('coolTemp'); //
 
@@ -86,7 +87,8 @@ function saveStack() {
     srcWid: +srcWid.value,
     dies: +dies.value,
     diePower: +diePower.value,
-    spacing: +dieSpacing.value,
+    spacingX: +dieSpacingX.value,
+    spacingY: +dieSpacingY.value,
     layout: dieLayout.value,
     coords: customCoords.value,
     coolerMode: coolSel.value,
@@ -124,7 +126,8 @@ function loadStack() {
     srcWid.value = data.srcWid || 5;
     dies.value = data.dies || 4;
     diePower.value = data.diePower || 1.0;
-    dieSpacing.value = data.spacing || 1;
+    dieSpacingX.value = data.spacingX || 1;
+    dieSpacingY.value = data.spacingY || 1;
     dieLayout.value = data.layout || 'line';
     customCoords.value = data.coords || '';
 
@@ -175,7 +178,7 @@ function runCalc() { //
     }); //
   }
 
-  if (+srcLen.value <= 0 || +srcWid.value <= 0 || +dies.value <= 0 || +dieSpacing.value < 0 || +diePower.value <= 0) { //
+  if (+srcLen.value <= 0 || +srcWid.value <= 0 || +dies.value <= 0 || +dieSpacingX.value < 0 || +dieSpacingY.value < 0 || +diePower.value <= 0) { //
     alert('Source dimensions, die count, spacing and power must be positive.'); //
     return; //
   } //
@@ -213,7 +216,8 @@ function runCalc() { //
       srcLen: +srcLen.value, //
       srcWid: +srcWid.value, //
       dies:   +dies.value, //
-      spacing: +dieSpacing.value, //
+      spacingX: +dieSpacingX.value, //
+      spacingY: +dieSpacingY.value, //
       layout: dieLayout ? dieLayout.value : 'line', //
       coords: customCoords ? customCoords.value : '', //
       coolerMode: coolSel.value, //
@@ -263,7 +267,8 @@ function runMonte() { //
       srcLen: +srcLen.value,
       srcWid: +srcWid.value,
       dies:   +dies.value,
-      spacing: +dieSpacing.value,
+      spacingX: +dieSpacingX.value,
+      spacingY: +dieSpacingY.value,
       layout: dieLayout ? dieLayout.value : 'line',
       coords: customCoords ? customCoords.value : '',
       coolerMode: coolSel.value,
@@ -746,7 +751,8 @@ document.addEventListener('DOMContentLoaded', () => { //
     if (srcWid) srcWid.value = '5';
     if (dies) dies.value = '4';
     if (diePower) diePower.value = '1.0';
-    if (dieSpacing) dieSpacing.value = '1';
+    if (dieSpacingX) dieSpacingX.value = '1';
+    if (dieSpacingY) dieSpacingY.value = '1';
     if (dieLayout) dieLayout.value = 'line';
     if (coolSel) coolSel.value = 'conv';
     if (coolRth) coolRth.value = '0.30';

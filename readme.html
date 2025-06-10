@@ -39,7 +39,7 @@
     <h2>Getting Started</h2>
     <h3>Quick Start Steps</h3>
     <ol>
-      <li><strong>Define Heat Source:</strong> Enter die dimensions (mm), power dissipation (W), number of dies, and their layout and spacing.</li>
+      <li><strong>Define Heat Source:</strong> Enter die dimensions (mm), power dissipation (W), number of dies, and their layout with X and Y spacing.</li>
       <li><strong>Build Stack-Up:</strong> Add material layers from die to cooler, specifying thickness (µm) and thermal conductivities (W/m·K).</li>
       <li><strong>Configure Cooling:</strong> Choose your cooling method (none, direct R<sub>th</sub>, or convection).</li>
       <li><strong>Calculate:</strong> Click "Calculate" to run the thermal analysis.</li>
@@ -77,15 +77,21 @@
         <td>1-500 W</td>
       </tr>
       <tr>
-        <td>Spacing</td>
+        <td>Spacing X</td>
         <td>mm</td>
-        <td>Center-to-center distance between dies for predefined layouts.</td>
+        <td>Horizontal center-to-center distance between dies for predefined layouts.</td>
+        <td>0.5-20 mm</td>
+      </tr>
+      <tr>
+        <td>Spacing Y</td>
+        <td>mm</td>
+        <td>Vertical center-to-center distance between dies for predefined layouts.</td>
         <td>0.5-20 mm</td>
       </tr>
        <tr>
         <td>Layout</td>
         <td>-</td>
-        <td>Arrangement of dies. 'Line', '2-Lines', and 'Quincunx' use the Spacing field. 'Custom' uses the Coords field.</td>
+        <td>Arrangement of dies. 'Line', '2-Lines', and 'Quincunx' use the Spacing X/Y fields. 'Custom' uses the Coords field.</td>
         <td>-</td>
       </tr>
        <tr>
@@ -223,7 +229,7 @@
     
     <h3>Design & Analysis</h3>
     <ul>
-        <li><strong>Use Layouts to Optimize:</strong> Experiment with different 'Layout' options and 'Spacing' to see the impact on the maximum die temperature. Sometimes a non-obvious arrangement can improve performance.</li>
+        <li><strong>Use Layouts to Optimize:</strong> Experiment with different 'Layout' options and the 'Spacing X' and 'Spacing Y' settings to see the impact on the maximum die temperature. Sometimes a non-obvious arrangement can improve performance.</li>
         <li><strong>Save Iterations:</strong> Use the 'Save Stack' and 'Load Stack' features to create a baseline design, then load it and make changes to compare different material choices or geometries.</li>
         <li><strong>Focus on Bottlenecks:</strong> Use the 'Contribution [%]' and 'Sensitivity Index [%]' columns to identify the most critical layers. Small improvements to these layers will yield the largest overall performance gains.</li>
         <li><strong>Validate Anisotropy:</strong> For materials like composites or PCBs, ensure the k<sub>xy</sub> and k<sub>z</sub> values are correct, as the ratio between them is a primary driver of heat spreading.</li>
@@ -243,7 +249,7 @@
       <tr>
         <td>Max and Average &Delta;T are very different</td>
         <td>Significant thermal crosstalk between dies.</td>
-        <td>This is expected in dense layouts. The 'max' value is your worst-case scenario. Increase die 'Spacing' or improve heat spreading to reduce the difference.</td>
+        <td>This is expected in dense layouts. The 'max' value is your worst-case scenario. Increase die spacing (X and Y) or improve heat spreading to reduce the difference.</td>
       </tr>
     </table>
     </section>
