@@ -1,6 +1,6 @@
 <!-- readme.html -->
 <div class="readme-content card">
-  <h1>Stack-up R<sub>th</sub> Calculator Tutorial</h1>
+  <h1>Stack-up R<sub>th</sub> &Delta;T Calculator Tutorial</h1>
   
   <div class="toc">
     <h2>Table of Contents</h2>
@@ -8,6 +8,7 @@
       <li><a href="#overview">Overview</a></li>
       <li><a href="#getting-started">Getting Started</a></li>
       <li><a href="#inputs">Input Parameters</a></li>
+      <li><a href="#usability">Usability Features</a></li>
       <li><a href="#results">Understanding Results</a></li>
       <li><a href="#monte-carlo">Monte Carlo Analysis</a></li>
       <li><a href="#mathematical-models">Mathematical Models</a></li>
@@ -18,15 +19,19 @@
 
   <section id="overview">
     <h2>Overview</h2>
-    <p>This calculator determines the thermal resistance (R<sub>th</sub>) of multi-layer electronic assemblies, accounting for heat spreading through anisotropic materials. It's particularly useful for analyzing thermal paths in semiconductor packages, power modules, and multi-die stacks.</p>
+    <p>This calculator determines the thermal resistance (R<sub>th</sub>) and resulting temperature rise (&Delta;T) of multi-layer electronic assemblies. It accounts for heat spreading through anisotropic materials and complex multi-die layouts. It's particularly useful for analyzing thermal paths and predicting component temperatures in semiconductor packages, power modules, and stacked-die configurations.</p>
     
     <h3>Key Features</h3>
     <ul>
-      <li><strong>Anisotropic Heat Spreading:</strong> Accounts for different thermal conductivities in XY-plane vs. Z-direction</li>
-      <li><strong>Multi-Die Support:</strong> Calculates thermal resistance for parallel heat sources</li>
-      <li><strong>Flexible Cooling Models:</strong> Direct R<sub>th</sub> specification or convection calculation</li>
-      <li><strong>Sensitivity Analysis:</strong> Identifies critical parameters affecting thermal performance</li>
-      <li><strong>Monte Carlo Simulation:</strong> Accounts for manufacturing tolerances and material uncertainties</li>
+      <li><strong>Anisotropic Heat Spreading:</strong> Accounts for different thermal conductivities in XY-plane vs. Z-direction.</li>
+      <li><strong>Advanced Multi-Die Support:</strong> Models thermal interactions in various layouts (Line, 2-Line, Custom) to find max and average die temperatures.</li>
+      <li><strong>Temperature Rise Calculation:</strong> Directly computes temperature increase (&Delta;T in &deg;C) based on die power input.</li>
+      <li><strong>Advanced Visualizations:</strong> Renders separate X and Y-axis side views of heat dissipation and a top-down view of the die layout and final spread area.</li>
+      <li><strong>Flexible Cooling Models:</strong> Supports direct R<sub>th</sub> specification or a convection calculation.</li>
+      <li><strong>Sensitivity Analysis:</strong> Identifies critical parameters affecting thermal performance.</li>
+      <li><strong>Monte Carlo Simulation:</strong> Assesses the impact of manufacturing tolerances and material uncertainties.</li>
+      <li><strong>Save/Load Configurations:</strong> Save your entire stack-up and settings to your browser to reload them later.</li>
+      <li><strong>Light/Dark Theme:</strong> Toggle for user comfort.</li>
     </ul>
   </section>
 
@@ -34,11 +39,11 @@
     <h2>Getting Started</h2>
     <h3>Quick Start Steps</h3>
     <ol>
-      <li><strong>Define Heat Source:</strong> Enter die dimensions (length × width in mm) and number of dies</li>
-      <li><strong>Build Stack-Up:</strong> Add layers from die to cooler, specifying thickness and thermal conductivities</li>
-      <li><strong>Configure Cooling:</strong> Choose cooling method (none, direct R<sub>th</sub>, or convection)</li>
-      <li><strong>Calculate:</strong> Click "Calculate" to run the thermal analysis</li>
-      <li><strong>Analyze Results:</strong> Review thermal resistance breakdown and heat spreading visualization</li>
+      <li><strong>Define Heat Source:</strong> Enter die dimensions (mm), power dissipation (W), number of dies, and their layout and spacing.</li>
+      <li><strong>Build Stack-Up:</strong> Add material layers from die to cooler, specifying thickness (µm) and thermal conductivities (W/m·K).</li>
+      <li><strong>Configure Cooling:</strong> Choose your cooling method (none, direct R<sub>th</sub>, or convection).</li>
+      <li><strong>Calculate:</strong> Click "Calculate" to run the thermal analysis.</li>
+      <li><strong>Analyze Results:</strong> Review the primary &Delta;T output, the detailed visualizations, and the thermal resistance breakdown in the summary table.</li>
     </ol>
   </section>
 
@@ -54,30 +59,48 @@
         <th>Typical Range</th>
       </tr>
       <tr>
-        <td>Length</td>
+        <td>Length / Width</td>
         <td>mm</td>
-        <td>Die footprint length (Y-direction)</td>
-        <td>1-20 mm</td>
-      </tr>
-      <tr>
-        <td>Width</td>
-        <td>mm</td>
-        <td>Die footprint width (X-direction)</td>
+        <td>Die footprint dimensions.</td>
         <td>1-20 mm</td>
       </tr>
       <tr>
         <td># of dies</td>
         <td>-</td>
-        <td>Number of identical dies in parallel</td>
-        <td>1-10</td>
+        <td>Number of identical, parallel heat sources.</td>
+        <td>1-16</td>
+      </tr>
+      <tr>
+        <td>Power per die</td>
+        <td>W</td>
+        <td>The power dissipated by each individual die. Used to calculate temperature rise (&Delta;T).</td>
+        <td>1-500 W</td>
+      </tr>
+      <tr>
+        <td>Spacing</td>
+        <td>mm</td>
+        <td>Center-to-center distance between dies for predefined layouts.</td>
+        <td>0.5-20 mm</td>
+      </tr>
+       <tr>
+        <td>Layout</td>
+        <td>-</td>
+        <td>Arrangement of dies. 'Line', '2-Lines', and 'Quincunx' use the Spacing field. 'Custom' uses the Coords field.</td>
+        <td>-</td>
+      </tr>
+       <tr>
+        <td>Coords</td>
+        <td>-</td>
+        <td>For 'Custom' layout, specify semicolon-separated coordinates for each die center (e.g., `0,0; 10.5,0; 0,10.5`).</td>
+        <td>-</td>
       </tr>
     </table>
 
     <h3>Material Stack-Up Parameters</h3>
-    <p>Build your thermal stack from die to cooler, layer by layer:</p>
+    <p>Build your thermal stack from the heat source down to the cooler, layer by layer.</p>
     
     <table class="param-table">
-      <tr>
+       <tr>
         <th>Parameter</th>
         <th>Units</th>
         <th>Description</th>
@@ -86,87 +109,40 @@
       <tr>
         <td>Material</td>
         <td>-</td>
-        <td>Descriptive name for reference</td>
-        <td>Die attach, Substrate, TIM, etc.</td>
+        <td>Descriptive name for reference.</td>
+        <td>Die, Solder, Substrate, TIM, etc.</td>
       </tr>
       <tr>
         <td>t</td>
-        <td>μm</td>
-        <td>Layer thickness</td>
-        <td>10-2000 μm</td>
+        <td>&micro;m</td>
+        <td>Layer thickness.</td>
+        <td>10-2000 &micro;m</td>
       </tr>
       <tr>
         <td>k<sub>xy</sub></td>
         <td>W/(m·K)</td>
-        <td>In-plane thermal conductivity</td>
-        <td>0.1-400 W/(m·K)</td>
+        <td>In-plane (X and Y directions) thermal conductivity.</td>
+        <td>0.1-400</td>
       </tr>
       <tr>
         <td>k<sub>z</sub></td>
         <td>W/(m·K)</td>
-        <td>Through-thickness thermal conductivity</td>
-        <td>0.1-400 W/(m·K)</td>
+        <td>Through-thickness (Z direction) thermal conductivity.</td>
+        <td>0.1-400</td>
       </tr>
     </table>
+    
+    <h3>Cooler/Base & Monte Carlo</h3>
+    <p>These sections remain the same, allowing you to define the final cooling stage resistance and to configure uncertainty analysis.</p>
+  </section>
 
-    <h4>Common Material Properties</h4>
-    <table class="material-table">
-      <tr>
-        <th>Material</th>
-        <th>k<sub>xy</sub> [W/(m·K)]</th>
-        <th>k<sub>z</sub> [W/(m·K)]</th>
-        <th>Notes</th>
-      </tr>
-      <tr>
-        <td>Silicon Die</td>
-        <td>150</td>
-        <td>150</td>
-        <td>Isotropic semiconductor</td>
-      </tr>
-      <tr>
-        <td>Solder (SAC305)</td>
-        <td>60</td>
-        <td>60</td>
-        <td>Die attach, interconnects</td>
-      </tr>
-      <tr>
-        <td>Copper</td>
-        <td>393</td>
-        <td>393</td>
-        <td>Heat spreader, substrate</td>
-      </tr>
-      <tr>
-        <td>Alumina (Al₂O₃)</td>
-        <td>25</td>
-        <td>25</td>
-        <td>Ceramic substrate</td>
-      </tr>
-      <tr>
-        <td>FR4 PCB</td>
-        <td>0.3</td>
-        <td>0.3</td>
-        <td>Standard PCB material</td>
-      </tr>
-      <tr>
-        <td>Thermal Interface</td>
-        <td>1-5</td>
-        <td>1-5</td>
-        <td>TIM pads, thermal grease</td>
-      </tr>
-    </table>
-
-    <h3>Cooler/Base Configuration</h3>
+  <section id="usability">
+    <h2>Usability Features</h2>
     <ul>
-      <li><strong>None:</strong> Calculates only stack conduction (infinite ambient resistance)</li>
-      <li><strong>Direct R<sub>th</sub>:</strong> Specify cooler thermal resistance directly</li>
-      <li><strong>Calculated Convection:</strong> Uses heat transfer coefficient and final heat spreading area</li>
-    </ul>
-
-    <h3>Monte Carlo Parameters</h3>
-    <ul>
-      <li><strong>Iterations:</strong> Number of random simulations (100-1000 recommended)</li>
-      <li><strong>t uncertainty:</strong> Thickness variation percentage (±%)</li>
-      <li><strong>k uncertainty:</strong> Conductivity variation percentage (±%)</li>
+      <li><strong>💾 Save Stack:</strong> Saves all current input values (die, cooler, layers, etc.) to your browser's local storage.</li>
+      <li><strong>📂 Load Stack:</strong> Restores the last saved configuration. Useful for resuming work or comparing design variations.</li>
+      <li><strong>Dark/Light Mode:</strong> Toggles the UI theme for better visibility. Your preference is saved.</li>
+      <li><strong>README:</strong> Shows or hides this tutorial panel.</li>
     </ul>
   </section>
 
@@ -175,153 +151,82 @@
     
     <h3>Primary Outputs</h3>
     <ul>
-      <li><strong>R<sub>th</sub> / die:</strong> Thermal resistance from one die to ambient [°C/W]</li>
-      <li><strong>Total stack R<sub>th</sub>:</strong> Equivalent resistance for all dies in parallel [°C/W]</li>
+      <li><strong>&Delta;T / die:</strong> The primary result, representing the temperature rise from ambient to the die. This is the key performance metric. For multi-die layouts, the tool reports both the **maximum** &Delta;T (for the hottest die) and the **average** &Delta;T across all dies.</li>
+      <li><strong>Total stack R<sub>th</sub>:</strong> The equivalent thermal resistance for all dies and the cooler combined, presented in &deg;C/W.</li>
     </ul>
 
-    <h3>Heat Spreading Visualization</h3>
-    <p>The 2D cone diagram shows how heat spreads through your stack:</p>
+    <h3>Results Visualizations</h3>
+    <p>The visualizations provide an intuitive understanding of how heat moves through the stack.</p>
     <ul>
-      <li>Colors represent different layers</li>
-      <li>Width expansion shows heat spreading effect</li>
-      <li>Thicker layers and higher k<sub>xy</sub>/k<sub>z</sub> ratios create more spreading</li>
+      <li><strong>X/Y Axis Thermal Dissipation:</strong> These two side-view diagrams show the heat spreading "cone" through the material layers along the X and Y axes, respectively. The gradient color represents the thermal path, and the expansion of the cone shows the effectiveness of heat spreading.</li>
+      <li><strong>Top View Layout:</strong> This diagram shows the die layout from above. The inner (red) rectangles are the actual die footprints. The outer (blue) rectangles represent the final area the heat has spread to at the bottom of the stack, illustrating how the individual thermal zones expand and potentially interact.</li>
     </ul>
 
     <h3>Summary Table Columns</h3>
+    <p>This table breaks down the thermal resistance (R<sub>th</sub>) contributions of each layer and the cooler.</p>
     <table class="results-table">
-      <tr>
+       <tr>
         <th>Column</th>
         <th>Description</th>
         <th>Interpretation</th>
       </tr>
       <tr>
         <td>R<sub>th</sub> (total stack)</td>
-        <td>Layer thermal resistance for all dies</td>
-        <td>Individual layer contribution</td>
+        <td>A layer's thermal resistance, accounting for all dies in parallel.</td>
+        <td>Identifies the individual resistance contribution of each layer.</td>
       </tr>
       <tr>
         <td>Cumulative R<sub>th</sub></td>
-        <td>Running total through stack</td>
-        <td>Resistance accumulation</td>
+        <td>The running total of thermal resistance through the stack.</td>
+        <td>Shows how resistance accumulates from the die to the cooler.</td>
       </tr>
       <tr>
         <td>Length (Y) at bottom</td>
-        <td>Heat path width after spreading</td>
-        <td>Spreading effectiveness</td>
+        <td>The effective width of the heat path after spreading through that layer.</td>
+        <td>Measures spreading effectiveness. A larger number is better.</td>
       </tr>
       <tr>
         <td>Contribution [%]</td>
-        <td>Layer's share of total resistance</td>
-        <td>Identifies thermal bottlenecks</td>
+        <td>The percentage of the total stack R<sub>th</sub> (excluding the cooler) that this layer is responsible for.</td>
+        <td>Quickly identifies the biggest thermal bottlenecks in your stack-up.</td>
       </tr>
       <tr>
-        <td>Sensitivity index [%]</td>
-        <td>Parameter sensitivity magnitude</td>
-        <td>Critical parameters for optimization</td>
+        <td>Sensitivity Index [%]</td>
+        <td>A root-sum-square measure of how much the total R<sub>th</sub> changes in response to variations in this layer's thickness and conductivity (t, k<sub>xy</sub>, k<sub>z</sub>).</td>
+        <td>A high value means the design is very sensitive to this layer's properties, making it a critical component for process control or optimization.</td>
       </tr>
     </table>
-
-    <h3>Cumulative R<sub>th</sub> Graph</h3>
-    <p>This plot shows thermal resistance buildup through the stack. Steep sections indicate high-resistance layers that may need attention.</p>
   </section>
-
-  <section id="monte-carlo">
-    <h2>Monte Carlo Analysis</h2>
-    
-    <h3>Purpose</h3>
-    <p>Monte Carlo simulation accounts for manufacturing tolerances and material property uncertainties by running hundreds of calculations with randomly varied parameters.</p>
-
-    <h3>Results Interpretation</h3>
-    <ul>
-      <li><strong>Mean:</strong> Expected R<sub>th</sub> value</li>
-      <li><strong>Standard deviation (σ):</strong> Variability measure</li>
-      <li><strong>Histogram:</strong> R<sub>th</sub> distribution shape</li>
-      <li><strong>Critical layer:</strong> Layer most often determining maximum resistance</li>
-    </ul>
-
-    <h3>Design Guidelines</h3>
-    <ul>
-      <li>Target: Mean + 3σ ≤ specification limit (99.7% yield)</li>
-      <li>Wide distributions indicate high sensitivity to tolerances</li>
-      <li>Non-normal distributions may indicate design robustness issues</li>
-    </ul>
-  </section>
-
+  
   <section id="mathematical-models">
     <h2>Mathematical Models</h2>
+
+    <h3>Temperature Rise (&Delta;T) Calculation</h3>
+    <p>The primary result is calculated from the thermal resistance and power:</p>
+    <div class="math-section">
+      <p>&Delta;T<sub>die</sub> [&deg;C] = R<sub>th, die</sub> [&deg;C/W] &times; Power<sub>per die</sub> [W]</p>
+    </div>
     
-    <h3>Heat Spreading Model</h3>
-    <p>The calculator uses a cone-spreading model for anisotropic materials:</p>
-    
-    <div class="math-section">
-      <h4>Spreading Angle</h4>
-      <p>α = arctan(√(k<sub>xy</sub>/k<sub>z</sub>))</p>
-      <p>Where α is the half-angle of the heat spreading cone.</p>
-    </div>
-
-    <div class="math-section">
-      <h4>Area Evolution</h4>
-      <p>For each infinitesimal layer dz:</p>
-      <p>dL = dW = 2·dz·tan(α)</p>
-      <p>Where L and W are the length and width of the heat spreading area.</p>
-    </div>
-
-    <div class="math-section">
-      <h4>Thermal Resistance</h4>
-      <p>R<sub>th</sub> = ∫ (dz) / (k<sub>z</sub> · A(z))</p>
-      <p>Where A(z) is the cross-sectional area at height z.</p>
-    </div>
-
-    <h3>Discretization Method</h3>
-    <p>Each layer is divided into 1 μm slices for accurate integration:</p>
-    <ul>
-      <li>Area calculated at each slice</li>
-      <li>Resistance accumulated slice by slice</li>
-      <li>Heat spreading updated continuously</li>
-    </ul>
-
     <h3>Multi-Die Modeling</h3>
-    <p>For N parallel dies:</p>
+    <p>Previously, dies were assumed to be thermally independent. The model is now more sophisticated:</p>
     <ul>
-      <li>Individual die R<sub>th</sub> = R<sub>stack</sub> + R<sub>cooler</sub></li>
-      <li>Total R<sub>th</sub> = (Individual R<sub>th</sub>) / N</li>
-      <li>Assumes identical dies with independent thermal paths</li>
+      <li>The tool calculates a full interaction matrix to determine how heat from each die affects every other die.</li>
+      <li>This allows for a more accurate prediction of individual die temperatures, especially in dense layouts.</li>
+      <li>The result is a list of temperature rises, from which the **maximum** and **average** values are reported, giving you insight into the thermal uniformity of your design.</li>
     </ul>
-
-    <h3>Cooling Models</h3>
-    <h4>Convection Model</h4>
-    <p>R<sub>cooler</sub> = 1 / (h · A<sub>final</sub>)</p>
-    <p>Where h is the heat transfer coefficient and A<sub>final</sub> is the final spreading area.</p>
-
-    <h4>Direct Model</h4>
-    <p>R<sub>cooler</sub> = specified value</p>
-    <p>Used when cooler R<sub>th</sub> is known from testing or detailed modeling.</p>
-  </section>
+    
+    <p>The rest of the mathematical models for heat spreading, discretization, and cooling remain as described in the following sections.</p>
+    </section>
 
   <section id="best-practices">
     <h2>Best Practices</h2>
     
-    <h3>Input Guidelines</h3>
+    <h3>Design & Analysis</h3>
     <ul>
-      <li><strong>Layer Order:</strong> Build stack from die to cooler in physical sequence</li>
-      <li><strong>Material Properties:</strong> Use temperature-dependent values at expected operating temperature</li>
-      <li><strong>Thickness Accuracy:</strong> Verify actual layer thicknesses, especially for thin films</li>
-      <li><strong>Anisotropy:</strong> Consider material grain structure and manufacturing orientation</li>
-    </ul>
-
-    <h3>Model Validation</h3>
-    <ul>
-      <li>Compare with thermal test data when available</li>
-      <li>Cross-check with finite element analysis for complex geometries</li>
-      <li>Verify spreading assumptions are reasonable for your geometry</li>
-    </ul>
-
-    <h3>Design Optimization</h3>
-    <ul>
-      <li>Focus on layers with highest contribution percentages</li>
-      <li>Consider both thickness and conductivity improvements</li>
-      <li>Use sensitivity analysis to prioritize design changes</li>
-      <li>Evaluate trade-offs between spreading and direct conduction</li>
+        <li><strong>Use Layouts to Optimize:</strong> Experiment with different 'Layout' options and 'Spacing' to see the impact on the maximum die temperature. Sometimes a non-obvious arrangement can improve performance.</li>
+        <li><strong>Save Iterations:</strong> Use the 'Save Stack' and 'Load Stack' features to create a baseline design, then load it and make changes to compare different material choices or geometries.</li>
+        <li><strong>Focus on Bottlenecks:</strong> Use the 'Contribution [%]' and 'Sensitivity Index [%]' columns to identify the most critical layers. Small improvements to these layers will yield the largest overall performance gains.</li>
+        <li><strong>Validate Anisotropy:</strong> For materials like composites or PCBs, ensure the k<sub>xy</sub> and k<sub>z</sub> values are correct, as the ratio between them is a primary driver of heat spreading.</li>
     </ul>
   </section>
 
@@ -331,53 +236,18 @@
     <h3>Common Issues</h3>
     <table class="trouble-table">
       <tr>
-        <th>Problem</th>
-        <th>Possible Cause</th>
-        <th>Solution</th>
+        <td>Save/Load Not Working</td>
+        <td>Browser privacy settings blocking local storage, or storage is full.</td>
+        <td>Ensure your browser allows sites to save data. Try clearing the site data for script.google.com.</td>
       </tr>
       <tr>
-        <td>Very high R<sub>th</sub> values</td>
-        <td>Low conductivity layers, small die area</td>
-        <td>Check material properties, verify units</td>
-      </tr>
-      <tr>
-        <td>Unexpected spreading behavior</td>
-        <td>High k<sub>xy</sub>/k<sub>z</sub> ratios</td>
-        <td>Verify anisotropic properties are correct</td>
-      </tr>
-      <tr>
-        <td>Monte Carlo shows wide distribution</td>
-        <td>High parameter sensitivities</td>
-        <td>Tighten tolerances or modify design</td>
-      </tr>
-      <tr>
-        <td>Calculation errors</td>
-        <td>Invalid parameter values</td>
-        <td>Check for positive, finite values</td>
+        <td>Max and Average &Delta;T are very different</td>
+        <td>Significant thermal crosstalk between dies.</td>
+        <td>This is expected in dense layouts. The 'max' value is your worst-case scenario. Increase die 'Spacing' or improve heat spreading to reduce the difference.</td>
       </tr>
     </table>
+    </section>
 
-    <h3>Model Limitations</h3>
-    <ul>
-      <li><strong>1D Spreading:</strong> Assumes uniform spreading in XY plane</li>
-      <li><strong>Perfect Interfaces:</strong> No interface thermal resistance modeled</li>
-      <li><strong>Steady State:</strong> No transient thermal effects</li>
-      <li><strong>Linear Materials:</strong> Temperature-independent properties assumed</li>
-    </ul>
-
-    <h3>When to Use Detailed FEA</h3>
-    <ul>
-      <li>Complex 3D geometries</li>
-      <li>Non-uniform die layouts</li>
-      <li>Significant interface resistances</li>
-      <li>Temperature-dependent material properties</li>
-      <li>Detailed temperature distribution needed</li>
-    </ul>
-  </section>
-
-  <div class="footer">
-    <p><em>This calculator provides engineering estimates for thermal design. For critical applications, validate results with detailed analysis and thermal testing.</em></p>
-  </div>
 </div>
 
 <style>
