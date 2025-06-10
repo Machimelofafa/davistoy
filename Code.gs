@@ -12,7 +12,7 @@ const RTH_LIMIT = 100; // abort if cumulative Rth exceeds this
  * Throws descriptive errors when required fields are missing or invalid.
  */
 function validatePayload(p) {
-  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth', 'spacing', 'diePower'];
+  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth', 'spacingX', 'spacingY', 'diePower'];
   numericFields.forEach(function(field) {
     if (typeof p[field] !== 'number' || isNaN(p[field])) {
       throw new Error('Invalid payload: "' + field + '" must be a number');
@@ -30,8 +30,11 @@ function validatePayload(p) {
   if (typeof p.diePower === 'number' && p.diePower <= 0) {
     throw new Error('diePower must be positive');
   }
-  if (typeof p.spacing === 'number' && p.spacing < 0) {
-    throw new Error('spacing must be non-negative');
+  if (typeof p.spacingX === 'number' && p.spacingX < 0) {
+    throw new Error('spacingX must be non-negative');
+  }
+  if (typeof p.spacingY === 'number' && p.spacingY < 0) {
+    throw new Error('spacingY must be non-negative');
   }
   if (!Array.isArray(p.layers)) {
     throw new Error('Invalid payload: "layers" must be an array');
@@ -144,22 +147,25 @@ function solveSingleDieStack(p1) {
  * Calculate die coordinates for a given layout.
  * @param {string} layout - The name of the layout ('line', '2-lines', '2-linesQ', 'custom').
  * @param {number} n - The number of dies.
- * @param {number} spacing - The center-to-center spacing in mm.
+ * @param {number} spacingX - The horizontal center-to-center spacing in mm.
+ * @param {number} spacingY - The vertical center-to-center spacing in mm.
  * @param {string} custom - The custom coordinate string.
  * @returns {Array<Array<number>>} An array of [x,y] coordinates for each die.
  */
-function getCoords(layout, n, spacing, custom) {
+function getCoords(layout, n, spacingX, spacingY, custom) {
   const arr = [];
-  const s = typeof spacing === 'number' ? spacing : 0;
-  const s_half = s / 2;
+  const sX = typeof spacingX === 'number' ? spacingX : 0;
+  const sY = typeof spacingY === 'number' ? spacingY : 0;
+  const halfX = sX / 2;
+  const halfY = sY / 2;
 
   switch (layout) {
     case '2-lines':
       for (let i = 0; i < n; i++) {
-        const row = Math.floor(i / 2); // 0 for top row, 1 for bottom row
+        const row = Math.floor(i / 2); // 0 for first column, 1 for second
         const col = i % 2;
-        const x = row * s;
-        const y = col * s - s_half;
+        const x = row * sX;
+        const y = col * sY - halfY;
         arr.push([x, y]);
       }
       break;
@@ -168,8 +174,8 @@ function getCoords(layout, n, spacing, custom) {
       for (let i = 0; i < n; i++) {
         const row = Math.floor(i / 2);
         const col = i % 2;
-        const x = row * s + (col * s_half); // Stagger x
-        const y = col * s - s_half;
+        const x = row * sX + (col * halfX); // Stagger x
+        const y = col * sY - halfY;
         arr.push([x, y]);
       }
       break;
@@ -184,13 +190,13 @@ function getCoords(layout, n, spacing, custom) {
         });
       }
       // Pad with default coords if not enough were provided
-      while (arr.length < n) arr.push([arr.length * s, 0]);
+      while (arr.length < n) arr.push([arr.length * sX, 0]);
       break;
 
     case 'line':
     default:
       for (let i = 0; i < n; i++) {
-        arr.push([i * s, 0]);
+        arr.push([i * sX, 0]);
       }
       break;
   }
@@ -269,7 +275,7 @@ function computeUnionArea(rects) {
  */
 function buildConductanceMatrix(p, singleDieResults) {
   const N = singleDieResults.length;
-  const coords = getCoords(p.layout, N, p.spacing, p.coords);
+  const coords = getCoords(p.layout, N, p.spacingX, p.spacingY, p.coords);
 
   const numLayers = p.layers.length;
   let G = Array.from({ length: N }, () => Array(N).fill(0));
@@ -516,7 +522,8 @@ function solveMonteCarlo(p) {
         srcLen: p.srcLen,
         srcWid: p.srcWid,
         dies:   p.dies,
-        spacing: p.spacing,
+        spacingX: p.spacingX,
+        spacingY: p.spacingY,
         layout:  p.layout,
         coords:  p.coords,
         coolerMode: p.coolerMode,
