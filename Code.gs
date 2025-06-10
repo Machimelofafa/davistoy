@@ -270,6 +270,25 @@ function computeUnionArea(rects) {
   return area;
 }
 
+/** Compute the area of the bounding box enclosing a set of rectangles. */
+function computeBoundingBoxArea(rects) {
+  if (!rects || rects.length === 0) return 0;
+  let min_x = rects[0].x0;
+  let max_x = rects[0].x1;
+  let min_y = rects[0].y0;
+  let max_y = rects[0].y1;
+  for (let i = 1; i < rects.length; i++) {
+    const r = rects[i];
+    if (r.x0 < min_x) min_x = r.x0;
+    if (r.x1 > max_x) max_x = r.x1;
+    if (r.y0 < min_y) min_y = r.y0;
+    if (r.y1 > max_y) max_y = r.y1;
+  }
+  const width = max_x - min_x;
+  const height = max_y - min_y;
+  return width * height;
+}
+
 /**
  * Build the final conductance matrix including lateral coupling and cooler.
  */
@@ -348,11 +367,11 @@ function buildConductanceMatrix(p, singleDieResults) {
     footprints.push({ x0: cx - wX/2, x1: cx + wX/2, y0: cy - wY/2, y1: cy + wY/2 });
   }
 
-  const A_union = computeUnionArea(footprints);
+  const A_bounding_box = computeBoundingBoxArea(footprints);
   let G_cool_tot = 0;
   if (p.coolerMode === 'conv') {
-    if (p.hConv > 0 && A_union > 0) {
-      G_cool_tot = p.hConv * A_union;
+    if (p.hConv > 0 && A_bounding_box > 0) {
+      G_cool_tot = p.hConv * A_bounding_box;
     }
   } else if (p.coolerMode === 'direct') {
     if (p.coolerRth > 0) {
