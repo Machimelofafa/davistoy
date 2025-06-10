@@ -390,10 +390,19 @@ function buildSideView(axis, container, o) {
   // --- Draw Layers and Cooler ---
   let currentY = 0;
   layers.forEach((layer, i) => {
-    svg.appendChild(NS('rect', {
-      x: sceneMin, y: currentY, width: sceneWidth, height: layer.t,
+    const rect = NS('rect', {
+      x: sceneMin,
+      y: currentY,
+      width: sceneWidth,
+      height: layer.t,
       fill: i % 2 === 0 ? '#E0E0E0' : '#CCCCCC'
-    }));
+    });
+    if (o && Array.isArray(o.materialNames) && o.materialNames[i]) {
+      const title = NS('title');
+      title.textContent = o.materialNames[i];
+      rect.appendChild(title);
+    }
+    svg.appendChild(rect);
     currentY += layer.t;
   });
   svg.appendChild(NS('rect', {
