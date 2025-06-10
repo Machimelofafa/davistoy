@@ -83,3 +83,30 @@
     <input id="mcUncK" type="number" step="0.1" value="5">
   </label>
 </section>
+<section class="card inline">
+  <h2>Parameter Sweep Analysis</h2>
+  <label>
+    <input id="sweepEnabled" type="checkbox"> Enable Sweep Analysis
+  </label>
+  <div id="sweepControls" class="hide">
+    <label>Layer Number
+      <input id="sweepLayer" type="number" min="1" value="1">
+    </label>
+    <label>Parameter
+      <select id="sweepParam">
+        <option value="t">Thickness (t)</option>
+        <option value="kxy">In-Plane Conductivity (kxy)</option>
+        <option value="kz">Through-Thickness Conductivity (kz)</option>
+      </select>
+    </label>
+    <label>Start Value
+      <input id="sweepStart" type="number" step="0.1" value="0">
+    </label>
+    <label>End Value
+      <input id="sweepEnd" type="number" step="0.1" value="0">
+    </label>
+    <label>Steps
+      <input id="sweepSteps" type="number" min="2" value="5">
+    </label>
+  </div>
+</section>

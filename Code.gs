@@ -567,6 +567,48 @@ function solveMonteCarlo(p) {
   };
 }
 
+/**
+ * Perform a parameter sweep analysis over a single layer property.
+ */
+function solveSweep(p) {
+  const layerIdx = Math.max(0, Math.floor(p.sweepLayer || 1) - 1);
+  const param = String(p.sweepParam || 't');
+  const start = Number(p.sweepStart);
+  const end = Number(p.sweepEnd);
+  const steps = Math.max(2, Math.floor(p.sweepSteps || 2));
+
+  const results = [];
+  for (let i = 0; i < steps; i++) {
+    const val = start + (end - start) * i / (steps - 1);
+    const layersCopy = p.layers.map(L => ({
+      mat: L.mat,
+      t: L.t,
+      kxy: L.kxy,
+      kz: L.kz
+    }));
+    if (layersCopy[layerIdx]) {
+      layersCopy[layerIdx][param] = val;
+    }
+    const r = solve({
+      srcLen: p.srcLen,
+      srcWid: p.srcWid,
+      dies: p.dies,
+      spacingX: p.spacingX,
+      spacingY: p.spacingY,
+      layout: p.layout,
+      coords: p.coords,
+      coolerMode: p.coolerMode,
+      coolerRth: p.coolerRth,
+      hConv: p.hConv,
+      diePower: p.diePower,
+      layers: layersCopy,
+      sensitivity: false
+    });
+    results.push({ sweptValue: val, resultValue: r.rDie });
+  }
+  return results;
+}
+
 /* ====================================================================================================
    UI bootstrap helpers (doGet, inc) - These functions remain unchanged.
    ==================================================================================================== */
