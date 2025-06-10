@@ -20,6 +20,7 @@ const mcCard = $('mcResult'), mcStats = $('mcStats'), histSvg = $('histSvg'); //
 const btnReadme = $('btnReadme'), readmeDiv = $('readmeDiv'); //
 const themeToggle = $('themeToggle'); //
 const loader = $('loader'), errorBox = $('errorBox'); //
+const crosstalkTbl = $('crosstalkMatrixTable'); // new handle for crosstalk table
 
 // Handles for elements in controls.html
 const srcLen = $('srcLen'), srcWid = $('srcWid'), dies = $('dies'); //
@@ -212,6 +213,7 @@ function runCalc() { //
       if(btnRun) btnRun.disabled = false;  //
       if(errorBox) errorBox.style.display = 'none'; //
       draw(response); //
+      drawCrosstalkMatrix(response.tempCrosstalkMatrix); // new call
     })
     .withFailureHandler(error => { //
       if(loader) loader.style.display = 'none'; //
@@ -848,6 +850,55 @@ function buildLayoutView(o) {
   });
 
   layoutView.appendChild(svg);
+}
+
+// ======================= Crosstalk Matrix Rendering =======================
+function drawCrosstalkMatrix(matrix) {
+  if (!crosstalkTbl) return;
+  crosstalkTbl.innerHTML = '';
+  if (!Array.isArray(matrix) || matrix.length === 0) return;
+
+  const N = matrix.length;
+  let maxVal = -Infinity;
+  matrix.forEach(row => row.forEach(v => {
+    if (typeof v === 'number' && isFinite(v) && v > maxVal) maxVal = v;
+  }));
+  if (!isFinite(maxVal)) maxVal = 0;
+
+  const thead = document.createElement('thead');
+  const hRow = document.createElement('tr');
+  hRow.appendChild(document.createElement('th'));
+  for (let j = 0; j < N; j++) {
+    const th = document.createElement('th');
+    th.textContent = `Heating Die ${j + 1}`;
+    hRow.appendChild(th);
+  }
+  thead.appendChild(hRow);
+  const tbody = document.createElement('tbody');
+
+  for (let i = 0; i < N; i++) {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = `Heated Die ${i + 1}`;
+    tr.appendChild(th);
+    for (let j = 0; j < N; j++) {
+      const val = matrix[i][j];
+      const td = document.createElement('td');
+      if (typeof val === 'number' && isFinite(val)) {
+        td.textContent = val.toFixed(3);
+        if (maxVal > 0) {
+          const alpha = Math.min(1, val / maxVal);
+          td.style.backgroundColor = `rgba(255,0,0,${alpha})`;
+        }
+      } else {
+        td.textContent = '-';
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  crosstalkTbl.appendChild(thead);
+  crosstalkTbl.appendChild(tbody);
 }
 /* ======================= SVG helper ======================= */
 function NS(tag, attrs) { //

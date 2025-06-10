@@ -424,6 +424,18 @@ function coreSolve(p) {
 
   const sys = solveSystem(matrixInfo.G, Pvec);
 
+  // ----- Compute Crosstalk Matrix -----
+  const rthMatrix = Array.from({ length: N }, () => Array(N).fill(0));
+  for (let j = 0; j < N; j++) {
+    const Ptest = new Array(NN).fill(0);
+    Ptest[j] = 1; // unit power for source die j
+    const temps = solveSystem(matrixInfo.G, Ptest).dieTemps;
+    for (let i = 0; i < N; i++) {
+      rthMatrix[i][j] = temps[i];
+    }
+  }
+  const tempCrosstalkMatrix = rthMatrix.map(row => row.map(v => v * (p.diePower || 1)));
+
   const rDie = sys.maxTemp;
   const P_total = N * (p.diePower || 1.0);
   const rTotal = P_total > 0 ? sys.maxTemp / P_total : 0;
@@ -446,7 +458,9 @@ function coreSolve(p) {
     rCoolPerDie: rCool,
     rStack,
     rDieList: sys.dieTemps,
-    rDieAvg: sys.avgTemp
+    rDieAvg: sys.avgTemp,
+    rthMatrix,
+    tempCrosstalkMatrix
   };
 }
 function computeSensitivity(p, baseR) {
