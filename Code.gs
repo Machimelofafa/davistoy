@@ -429,6 +429,7 @@ function coreSolve(p) {
   const rTotal = P_total > 0 ? sys.maxTemp / P_total : 0;
 
   const { rEach, rCum, lengths, widths, widthsX, widthsY, rCool, rStack } = tplResult;
+  const materialNames = p.layers.map(function(L){ return typeof L.mat === 'string' ? L.mat : ''; });
 
   return {
     rEach,
@@ -437,6 +438,7 @@ function coreSolve(p) {
     lengths,
     widthsX,
     widthsY,
+    materialNames,
     coords: matrixInfo.coords,
     rDie,
     rTotal,
