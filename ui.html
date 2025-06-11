@@ -778,7 +778,7 @@ function drawSweepChart(data) {
     // x-axis tick
     sweepChart.appendChild(NS('line', { x1: tx, y1: H - margin.bottom, x2: tx, y2: H - margin.bottom + 4, stroke: '#888' }));
     const xt = NS('text', { x: tx, y: H - margin.bottom + 15, 'text-anchor':'middle', 'class':'axis-text', 'font-size':'8px' });
-    xt.textContent = xVal.toFixed(3);
+    xt.textContent = xVal.toFixed(0);
     sweepChart.appendChild(xt);
     // y-axis tick
     sweepChart.appendChild(NS('line', { x1: margin.left - 4, y1: ty, x2: margin.left, y2: ty, stroke: '#888' }));
@@ -796,7 +796,7 @@ function drawSweepChart(data) {
   xAxisTitle.textContent = `Layer ${layerNum} ${xTitle}`;
   sweepChart.appendChild(xAxisTitle);
 
-  const yAxisTitle = NS('text', { x: 15, y: margin.top + plotH/2, transform:`rotate(-90 15 ${margin.top + plotH/2})`, 'text-anchor':'middle', 'class':'axis-text', 'font-size':'8px' });
+  const yAxisTitle = NS('text', { x: 12, y: margin.top + plotH/2, transform:`rotate(-90 12 ${margin.top + plotH/2})`, 'text-anchor':'middle', 'class':'axis-text', 'font-size':'8px' });
   yAxisTitle.textContent = 'Rth (total stack) °C/W';
   sweepChart.appendChild(yAxisTitle);
 
