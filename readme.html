@@ -11,6 +11,7 @@
       <li><a href="#usability">Usability Features</a></li>
       <li><a href="#results">Understanding Results</a></li>
       <li><a href="#monte-carlo">Monte Carlo Analysis</a></li>
+      <li><a href="#parameter-sweep">Parameter Sweep</a></li>
       <li><a href="#mathematical-models">Mathematical Models</a></li>
       <li><a href="#best-practices">Best Practices</a></li>
       <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -24,16 +25,22 @@
     <h3>Key Features</h3>
     <ul>
       <li><strong>Anisotropic Heat Spreading:</strong> Accounts for different thermal conductivities in XY-plane vs. Z-direction.</li>
-      <li><strong>Advanced Multi-Die Support:</strong> Models thermal interactions in various layouts (Line, 2-Line, Custom) to find max and average die temperatures.</li>
+      <li><strong>Advanced Multi-Die Support:</strong> Models thermal interactions in layouts including Line, 2-Lines, Quincunx and fully Custom to find max and average die temperatures.</li>
       <li><strong>Temperature Rise Calculation:</strong> Directly computes temperature increase (&Delta;T in &deg;C) based on die power input.</li>
       <li><strong>Advanced Visualizations:</strong> Renders separate X and Y-axis side views of heat dissipation and a top-down view of the die layout and final spread area.</li>
       <li><strong>Flexible Cooling Models:</strong> Supports direct R<sub>th</sub> specification or a convection calculation.</li>
       <li><strong>Sensitivity Analysis:</strong> Identifies critical parameters affecting thermal performance.</li>
       <li><strong>Monte Carlo Simulation:</strong> Assesses the impact of manufacturing tolerances and material uncertainties.</li>
+      <li><strong>Parameter Sweep Analysis:</strong> Sweeps a chosen layer parameter and plots its effect on total R<sub>th</sub>.</li>
+      <li><strong>Thermal Crosstalk Matrix:</strong> Visual table showing how each die's heat influences the others.</li>
+      <li><strong>Improved Cooler Model:</strong> Uses the bounding box of the final spread area for convection calculations.</li>
       <li><strong>Save/Load Configurations:</strong> Save your entire stack-up and settings to your browser to reload them later.</li>
+      <li><strong>Loader & Error Box:</strong> Indicates progress and reports invalid inputs.</li>
       <li><strong>Light/Dark Theme:</strong> Toggle for user comfort.</li>
     </ul>
   </section>
+
+
 
   <section id="getting-started">
     <h2>Getting Started</h2>
@@ -139,7 +146,7 @@
     </table>
     
     <h3>Cooler/Base & Monte Carlo</h3>
-    <p>These sections remain the same, allowing you to define the final cooling stage resistance and to configure uncertainty analysis.</p>
+    <p>Use these inputs to specify the cooler resistance (direct value or convection coefficient) and to configure uncertainty parameters. Detailed usage is covered in the Monte Carlo section below.</p>
   </section>
 
   <section id="usability">
@@ -166,6 +173,7 @@
     <ul>
       <li><strong>X/Y Axis Thermal Dissipation:</strong> These two side-view diagrams show the heat spreading "cone" through the material layers along the X and Y axes, respectively. The gradient color represents the thermal path, and the expansion of the cone shows the effectiveness of heat spreading.</li>
       <li><strong>Top View Layout:</strong> This diagram shows the die layout from above. The inner (red) rectangles are the actual die footprints. The outer (blue) rectangles represent the final area the heat has spread to at the bottom of the stack, illustrating how the individual thermal zones expand and potentially interact.</li>
+      <li><strong>Crosstalk Matrix:</strong> A color-coded table quantifying how much each die heats its neighbors.</li>
     </ul>
 
     <h3>Summary Table Columns</h3>
@@ -201,27 +209,65 @@
         <td>A root-sum-square measure of how much the total R<sub>th</sub> changes in response to variations in this layer's thickness and conductivity (t, k<sub>xy</sub>, k<sub>z</sub>).</td>
         <td>A high value means the design is very sensitive to this layer's properties, making it a critical component for process control or optimization.</td>
       </tr>
-    </table>
+  </table>
   </section>
-  
+
+  <section id="monte-carlo">
+    <h2>Monte Carlo Analysis</h2>
+    <p>The Monte Carlo option runs many simulations with random perturbations to layer thickness and conductivity. Use the checkbox in the control panel to enable it.</p>
+    <ol>
+      <li>Choose the number of <em>Iterations</em> and percentage uncertainties for <em>t</em> and <em>k</em>.</li>
+      <li>Click <strong>Run Monte&nbsp;Carlo</strong> to generate a distribution of total R<sub>th</sub>.</li>
+    </ol>
+    <p>The tool displays the mean, standard deviation and a histogram of the results. The most critical layer is highlighted in the summary table.</p>
+  </section>
+
+  <section id="parameter-sweep">
+    <h2>Parameter Sweep</h2>
+    <p>This feature varies one layer parameter over a range to show its impact on R<sub>th</sub>.</p>
+    <ol>
+      <li>Enable <em>Sweep Analysis</em> and select the target layer and parameter (t, k<sub>xy</sub>, k<sub>z</sub>).</li>
+      <li>Specify the start value, end value and the number of steps.</li>
+      <li>Run the sweep to view the line chart of R<sub>th</sub> vs. the swept value. Axes automatically scale for clarity.</li>
+    </ol>
+  </section>
+
   <section id="mathematical-models">
     <h2>Mathematical Models</h2>
 
     <h3>Temperature Rise (&Delta;T) Calculation</h3>
-    <p>The primary result is calculated from the thermal resistance and power:</p>
+    <p>The temperature rise of each die is obtained from the solved thermal resistance:</p>
     <div class="math-section">
-      <p>&Delta;T<sub>die</sub> [&deg;C] = R<sub>th, die</sub> [&deg;C/W] &times; Power<sub>per die</sub> [W]</p>
+      <p>&Delta;T<sub>die</sub> [°C] = R<sub>th, die</sub> [°C/W] &times; Power<sub>per die</sub> [W]</p>
     </div>
-    
-    <h3>Multi-Die Modeling</h3>
-    <p>Previously, dies were assumed to be thermally independent. The model is now more sophisticated:</p>
-    <ul>
-      <li>The tool calculates a full interaction matrix to determine how heat from each die affects every other die.</li>
-      <li>This allows for a more accurate prediction of individual die temperatures, especially in dense layouts.</li>
-      <li>The result is a list of temperature rises, from which the **maximum** and **average** values are reported, giving you insight into the thermal uniformity of your design.</li>
-    </ul>
-    
-    <p>The rest of the mathematical models for heat spreading, discretization, and cooling remain as described in the following sections.</p>
+
+    <h3>Layer-by-Layer Solver</h3>
+    <p>Each material layer is sliced into 1&nbsp;µm increments. For a slice of thickness &Delta;t the vertical resistance is</p>
+    <div class="math-section">
+      <p>R<sub>slice</sub> = &Delta;t / (k<sub>z</sub> &times; A<sub>slice</sub>)</p>
+    </div>
+    <p>The spreading footprint increases after every slice according to</p>
+    <div class="math-section">
+      <p>&Delta;w = 2 &times; &Delta;t &times; &radic;(k<sub>xy</sub>/k<sub>z</sub>)</p>
+    </div>
+    <p>Widths in the X and Y directions are tracked separately for anisotropic materials. Slice resistances accumulate until the sum reaches the layer value.</p>
+
+    <h3>Lateral Coupling Between Dies</h3>
+    <p>After solving each die vertically, the tool computes overlap areas between every pair of dies to build a conductance matrix:</p>
+    <div class="math-section">
+      <p>R<sub>ij</sub> = &Sigma;<sub>layers</sub> t<sub>l</sub> / (k<sub>xy,l</sub> &times; A<sub>ij,l</sub>)</p>
+    </div>
+    <p>The matrix includes these lateral conductances plus the vertical stack conductances to each die.</p>
+
+    <h3>Cooler Boundary</h3>
+    <p>The cooler is added as either a fixed resistance or a convection term. For convection:</p>
+    <div class="math-section">
+      <p>R<sub>cool</sub> = 1 / (h<sub>conv</sub> &times; A<sub>bb</sub>)</p>
+    </div>
+    <p>A<sub>bb</sub> is the bounding-box area of all die footprints at the stack bottom.</p>
+
+    <h3>Temperature Solution</h3>
+    <p>The final system [G]{T} = {P} is solved to obtain die temperatures. The largest temperature rise defines the per-die R<sub>th</sub>, while dividing by total power yields the overall stack resistance.</p>
     </section>
 
   <section id="best-practices">
