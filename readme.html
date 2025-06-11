@@ -15,6 +15,11 @@
       <li><a href="#mathematical-models">Mathematical Models</a></li>
       <li><a href="#best-practices">Best Practices</a></li>
       <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#material-guide">Material Guide</a></li>
+      <li><a href="#examples">Examples and Case Studies</a></li>
+      <li><a href="#architecture">Code Architecture</a></li>
+      <li><a href="#developer-info">Developer Info</a></li>
+      <li><a href="#validation">Validation &amp; References</a></li>
     </ul>
   </div>
 
@@ -298,7 +303,160 @@
         <td>This is expected in dense layouts. The 'max' value is your worst-case scenario. Increase die spacing (X and Y) or improve heat spreading to reduce the difference.</td>
       </tr>
     </table>
-    </section>
+  </section>
+
+  <section id="material-guide">
+    <h2>Material Properties Guide</h2>
+
+    <h3>Typical Material Properties</h3>
+    <table class="material-table">
+      <tr>
+        <th>Material</th>
+        <th>kxy [W/m·K]</th>
+        <th>kz [W/m·K]</th>
+        <th>Typical Thickness</th>
+        <th>Applications</th>
+      </tr>
+      <tr>
+        <td>Silicon</td>
+        <td>150</td>
+        <td>150</td>
+        <td>100-500 μm</td>
+        <td>Die substrate</td>
+      </tr>
+      <tr>
+        <td>Copper</td>
+        <td>400</td>
+        <td>400</td>
+        <td>10-100 μm</td>
+        <td>Heat spreader, interconnects</td>
+      </tr>
+      <tr>
+        <td>Solder (SAC305)</td>
+        <td>60</td>
+        <td>60</td>
+        <td>20-50 μm</td>
+        <td>Die attach, interconnects</td>
+      </tr>
+      <tr>
+        <td>Thermal Interface Material</td>
+        <td>1-5</td>
+        <td>1-5</td>
+        <td>10-100 μm</td>
+        <td>Gap filling</td>
+      </tr>
+      <tr>
+        <td>FR4 PCB</td>
+        <td>0.3</td>
+        <td>0.3</td>
+        <td>100-1600 μm</td>
+        <td>Circuit board</td>
+      </tr>
+      <tr>
+        <td>Aluminum Nitride</td>
+        <td>180</td>
+        <td>180</td>
+        <td>200-1000 μm</td>
+        <td>Ceramic substrate</td>
+      </tr>
+    </table>
+
+    <h3>Anisotropic Materials</h3>
+    <p>Some materials exhibit different thermal conductivities in different directions:</p>
+    <ul>
+      <li><strong>Graphite sheets:</strong> kxy = 1500, kz = 5 W/m·K</li>
+      <li><strong>Carbon fiber composites:</strong> Highly directional properties</li>
+      <li><strong>Layered ceramics:</strong> Different properties through thickness</li>
+    </ul>
+  </section>
+
+  <section id="examples">
+    <h2>Examples and Case Studies</h2>
+
+    <h3>Example 1: Single Die Power Module</h3>
+    <div class="example-box">
+      <h4>Configuration:</h4>
+      <ul>
+        <li>Die: 10mm × 10mm, 300W</li>
+        <li>Layer 1: Silicon die (100μm, k=150)</li>
+        <li>Layer 2: Solder (25μm, k=60)</li>
+        <li>Layer 3: Copper baseplate (2000μm, k=400)</li>
+        <li>Cooling: Convection, h=5000 W/m²K</li>
+      </ul>
+      <h4>Expected Results:</h4>
+      <p>ΔT ≈ 15-25°C, depending on final spread area</p>
+    </div>
+
+    <h3>Example 2: Multi-Die Processor Package</h3>
+    <div class="example-box">
+      <h4>Configuration:</h4>
+      <ul>
+        <li>4 dies: 5mm × 5mm each, 50W per die</li>
+        <li>Layout: 2×2 grid, 7mm spacing</li>
+        <li>Layer 1: Silicon (150μm, k=150)</li>
+        <li>Layer 2: TIM (50μm, k=3)</li>
+        <li>Layer 3: Heat spreader (1000μm, k=400)</li>
+      </ul>
+      <h4>Analysis Focus:</h4>
+      <p>Thermal crosstalk between dies, hotspot identification</p>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <h2>Code Architecture</h2>
+    <p>The application follows a client-server architecture typical for Google Apps Script web apps:</p>
+    <ul>
+      <li><strong>Backend (<code>Code.gs</code>):</strong> Core logic for parameter validation, thermal calculations and Monte Carlo analyses.</li>
+      <li><strong>Frontend (HTML/JS):</strong> User interface templates including <code>index.html</code>, <code>controls.html</code> and <code>ui.html</code>.</li>
+      <li><strong>Configuration (<code>appsscript.json</code>):</strong> Project manifest defining runtime configuration.</li>
+    </ul>
+    <h3>Execution Flow</h3>
+    <ol>
+      <li>User inputs parameters via the HTML interface.</li>
+      <li>Client-side code calls the server using <code>google.script.run</code>.</li>
+      <li>The backend performs calculations and returns results.</li>
+      <li>Visualizations and tables update on the page.</li>
+    </ol>
+  </section>
+
+  <section id="developer-info">
+    <h2>Developer Information</h2>
+
+    <h3>Extending the Tool</h3>
+    <p>To add features or modify existing ones:</p>
+    <ol>
+      <li>Update <code>Code.gs</code> with new calculation logic.</li>
+      <li>Modify <code>controls.html</code> or <code>index.html</code> for additional inputs.</li>
+      <li>Add client-side code in <code>ui.html</code> for new visualizations.</li>
+      <li>Test changes thoroughly within the Apps Script editor.</li>
+    </ol>
+    <h3>Best Practices for Contribution</h3>
+    <ul>
+      <li>Keep frontend and backend logic well separated.</li>
+      <li>Document new functions clearly.</li>
+      <li>Maintain backward compatibility whenever possible.</li>
+      <li>Implement robust error handling.</li>
+    </ul>
+  </section>
+
+  <section id="validation">
+    <h2>Validation and References</h2>
+
+    <h3>Model Validation</h3>
+    <p>The thermal model has been compared against analytical solutions, finite element analysis and experimental measurements.</p>
+
+    <h3>Limitations and Accuracy</h3>
+    <div class="warning-box">
+      <strong>Important:</strong> Results provide preliminary estimates. For critical applications validate with detailed simulations or measurements.
+    </div>
+
+    <h3>References</h3>
+    <ul>
+      <li>Incropera &amp; DeWitt – Heat Transfer Fundamentals</li>
+      <li>Kraus &amp; Bar-Cohen – Thermal Management of Electronics</li>
+      <li>JEDEC Standards for Thermal Characterization</li>
+    </ul>
+  </section>
 
 </div>
 
@@ -365,6 +523,38 @@ body.dark-theme .math-section {
 
 .math-section p {
   font-family: 'Courier New', monospace;
+}
+
+.material-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+.material-table th,
+.material-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+.material-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.example-box {
+  background: #f0f8ff;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border: 1px solid #b3d9ff;
+}
+
+.warning-box {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  padding: 15px;
+  border-radius: 5px;
+  margin: 15px 0;
 }
 
 @media (max-width: 768px) {
