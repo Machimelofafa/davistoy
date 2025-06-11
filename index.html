@@ -1,84 +1,119 @@
-<style>
-  /* ===== default light theme ===== */
-  body{font:14px/1.4 'Segoe UI',Roboto,Arial,sans-serif;background:#ffffff;color:#111;padding:24px;}
-  h1{margin-top:0;color:#007acc;} h2{margin:0 0 6px 0;font-size:17px;color:#006bb3;}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base target="_top">
+  <!-- Theme CSS -->
+  <?!= inc('styles'); ?>
 
-  .card{background:#f0f0f0;border-radius:8px;padding:16px;margin:12px 0;box-shadow:0 2px 4px rgba(0,0,0,.2);}  .inline{display:inline-block;vertical-align:top;margin-right:16px;width:260px}
+  <!-- Google Charts loader (kept for possible sparklines) -->
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+  <button id="themeToggle" style="float:right;margin-left:8px">Dark Mode</button>
+  <button id="btnReadme" style="float:right">README</button>
+  <h1>Stack‑up R<sub>th</sub> Calculator V3</h1>
+  <div id="loader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center; color: white;">
+    <p>Calculating...</p>
+  </div>
+  <div id="errorBox" class="card" style="display:none; color:red;"></div>
 
-  table{width:100%;border-collapse:collapse;margin-top:8px;} th,td{border:1px solid #bbb;padding:3px 6px;text-align:center;}
-  th{background:#dfe9f2;color:#111;font-weight:600;}
+  <!-- heat‑source + cooler forms -->
+  <?!= inc('controls'); ?>
 
-  label{display:block;margin:6px 0} input,select{background:#fff;border:1px solid #777;color:#111;border-radius:4px;padding:4px;width:80px;} input.mat{width:240px;}  select{width:100%}
+  <!-- material table -->
+  <section class="card">
+    <h2>Material stack‑up</h2>
+    <table id="layerTbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th title="Material name or description">Material</th>
+          <th title="Layer thickness in micrometers">t&nbsp;[µm]</th>
+          <th title="Thermal conductivity in the XY plane">k<sub>xy</sub>[W/(m.K)]</th>
+          <th title="Thermal conductivity through thickness">k<sub>z</sub>[W/(m.K)]</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button id="btnAdd">➕ Add layer</button>
+  </section>
 
-  button{border:none;border-radius:4px;padding:6px 12px;cursor:pointer;background:#007acc;color:#fff;font-weight:600;margin-top:8px;} button.primary{font-size:16px;padding:8px 18px} button:hover{background:#1497ff}
+  <button id="btnCalc" class="primary" style="margin:18px 0">Calculate</button>
+  <button id="btnMonte" style="margin-left:6px">Monte Carlo</button>
+  <button id="btnSweep" style="margin-left:6px">Run Sweep Analysis</button>
+  <button id="btnSave" style="margin-left:12px;">💾 Save Stack</button>
+  <button id="btnLoad" style="margin-left:6px;">📂 Load Stack</button>
 
-  .hide{display:none;} .small{color:#006bb3;font-size:13px} .result p{margin:4px 0}
-  .viz-container {
-    padding-bottom: 20px;
-  }
+  <!-- results (2‑D cone + summary) -->
+  <section class="card result" id="resultCard">
+    <h2>Results</h2>
+    <p id="outDie">Rth / die = – °C/W</p>
+    <p id="outTdie" class="small"></p>
+    <p id="outTotal" class="small">Total stack (all dies) = – °C/W</p>
 
-  /* —— layout for cone + summary —— */
-  .flexBox{display:flex;gap:18px;align-items:flex-start;}
-  .side-view-box { height: 150px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
-  #cumSvg{width:100%;height:180px;overflow:visible;}
-  #histSvg{width:260px;height:auto;overflow:visible;}
-  #sweepChart.sweep-chart{width:1000px;height:600px;overflow:visible;display:block;margin:0 auto;}
-  #sweepResultCard.sweep-card{text-align:center;}
-  #sweepResultCard .axis-text{font-size:12px;}
-  .critical{background:#f8d7da;}
+    <!-- NEW DEDICATED VISUALIZATION SECTION -->
+    <section class="card viz-container">
+      <h2>Results Visualizations</h2>
+      <div class="flexBox">
+        <!-- Left Column for Side Views -->
+        <div class="viz-column-left">
+          <h3>X axis Thermal dissipation</h3>
+          <div id="sideViewX" class="side-view-box"></div>
+          <h3>Y axis Thermal dissipation</h3>
+          <div id="sideViewY" class="side-view-box"></div>
+        </div>
+        <!-- Right Column for Top View -->
+        <div class="viz-column-right">
+          <h3>Top view layout:</h3>
+          <div id="layoutView" class="top-view-box"></div>
+        </div>
+      </div>
+    </section>
 
-  .axis-text { fill: #111; }
-  body.dark-theme .axis-text { fill: #E8EEF2; }
+    <!-- CORRECTED SUMMARY SECTION -->
+    <div class="flexBox" style="margin-top: 20px;">
+      <div class="summary-table-container">
+        <table id="sumTbl" title="Thermal resistance summary by layer">
+          <thead>
+            <tr>
+              <th title="Layer number in the stack">Layer</th>
+              <th title="Thermal resistance for this layer considering all dies">Rth (total stack) [°C/W]</th>
+              <th title="Cumulative resistance up to this layer">Cumulative Rth (total stack) [°C/W]</th>
+              <th title="Length of the heat path at the bottom of this layer">Length (Y) at bottom [mm]</th>
+              <th title="Percent share of this layer in the total stack resistance">Contribution [%]</th>
+              <th title="Sensitivity magnitude based on parameter perturbation">Sensitivity index [%]</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="summary-graph-container">
+        <svg id="cumSvg" title="Plot of cumulative resistance versus layer"></svg>
+      </div>
+    </div>
 
 
-  .summary-table-container {
-    flex: 2; /* Takes up 2/3 of the space */
-  }
-  .summary-graph-container {
-    flex: 1; /* Takes up 1/3 of the space */
-    min-width: 280px;
-  }
+  </section>
 
-  .viz-column-left {
-    flex: 2; /* Takes up 2/3 of the space */
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  .viz-column-right {
-    flex: 1; /* Takes up 1/3 of the space */
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  .top-view-box {
-    height: 318px; /* Match height of the two side views + gap */
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .viz-container h3 {
-    margin: 0 0 5px 0;
-    font-size: 15px;
-    color: #005a99;
-  }
-  body.dark-theme .viz-container h3 {
-    color: #82c6ff;
-  }
-  body.dark-theme .side-view-box, body.dark-theme .top-view-box {
-    border-color: #324357;
-  }
+  <section class="card result sweep-card" id="sweepResultCard" style="display:none">
+    <h2>Sweep Analysis Result</h2>
+    <svg id="sweepChart" class="sweep-chart" title="Parameter sweep result"></svg>
+  </section>
 
-  /* ===== dark theme overrides ===== */
-  body.dark-theme{background:#0E1A25;color:#E8EEF2;}
-  body.dark-theme h1{color:#4FC3F7;}
-  body.dark-theme h2{color:#9ED1F5;}
-  body.dark-theme .card{background:#172938;box-shadow:0 2px 4px rgba(0,0,0,.4);}
-  body.dark-theme th,body.dark-theme td{border:1px solid #324357;}
-  body.dark-theme th{background:#26394B;color:#9ED1F5;}
-  body.dark-theme input,body.dark-theme select{background:#102233;border:1px solid #335;color:#E8EEF2;}
-  body.dark-theme button{background:#395CFE;color:#fff;}
-  body.dark-theme button:hover{background:#4C6CFF;}
-  body.dark-theme .small{color:#9ED1F5;}
-  body.dark-theme .critical{background:#523131;}
-</style>
+  <section class="card result" id="mcResult" style="display:none">
+    <h2>Monte Carlo Results</h2>
+    <p id="mcStats"></p>
+    <svg id="histSvg" title="Histogram of Monte Carlo simulation results"></svg>
+  </section>
+
+  <section class="card" id="readmeDiv" style="display:none">
+    <?!= inc('readme'); ?>
+  </section>
+
+  <!-- front‑end JS -->
+  <?!= inc('ui'); ?>
+</body>
+</html>
