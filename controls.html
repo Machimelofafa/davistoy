@@ -73,15 +73,20 @@
 
 <section class="card inline">
   <h2>Monte Carlo</h2>
-  <label title="Number of random simulations to run">Iterations
-    <input id="mcIter" type="number" min="1" value="200">
+  <label>
+    <input id="mcEnable" type="checkbox"> Enable
   </label>
-  <label title="Percentage deviation applied to thickness in simulations">t&nbsp;uncertainty&nbsp;[%]
-    <input id="mcUncT" type="number" step="0.1" value="5">
-  </label>
-  <label title="Percentage deviation applied to conductivities in simulations">k&nbsp;uncertainty&nbsp;[%]
-    <input id="mcUncK" type="number" step="0.1" value="5">
-  </label>
+  <div id="mcConfig" class="hide">
+    <label title="Number of random simulations to run">Iterations
+      <input id="mcIter" type="number" min="1" value="200">
+    </label>
+    <label title="Percentage deviation applied to thickness in simulations">t&nbsp;uncertainty&nbsp;[%]
+      <input id="mcUncT" type="number" step="0.1" value="5">
+    </label>
+    <label title="Percentage deviation applied to conductivities in simulations">k&nbsp;uncertainty&nbsp;[%]
+      <input id="mcUncK" type="number" step="0.1" value="5">
+    </label>
+  </div>
 </section>
 
 <section class="card inline">
