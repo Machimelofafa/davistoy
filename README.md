@@ -1,375 +1,53 @@
-<!-- readme.html -->
-<div class="readme-content card">
-  <h1>Stack-up R<sub>th</sub> &Delta;T Calculator Tutorial</h1>
-  
-  <div class="toc">
-    <h2>Table of Contents</h2>
-    <ul>
-      <li><a href="#overview">Overview</a></li>
-      <li><a href="#getting-started">Getting Started</a></li>
-      <li><a href="#inputs">Input Parameters</a></li>
-      <li><a href="#usability">Usability Features</a></li>
-      <li><a href="#results">Understanding Results</a></li>
-      <li><a href="#monte-carlo">Monte Carlo Analysis</a></li>
-      <li><a href="#parameter-sweep">Parameter Sweep</a></li>
-      <li><a href="#mathematical-models">Mathematical Models</a></li>
-      <li><a href="#best-practices">Best Practices</a></li>
-      <li><a href="#troubleshooting">Troubleshooting</a></li>
-    </ul>
-  </div>
+# Stack-up Rth Calculator
+ 
+ This repository contains a Google Apps Script web app that estimates the thermal resistance (Rth) of a material stack-up. The UI is delivered from `index.html` and the logic resides in `Code.gs`.
+ 
+ ## Import into Google Apps Script
+ 
+ 1. Open [script.new](https://script.new) to create a blank project.
+ 2. Replace the default `Code.gs` with the contents of this repo's `Code.gs`.
+ 3. Add new files named `index.html`, `controls.html`, `ui.html` and `styles.html`; paste in the matching contents from this repo.
+ 4. Open the project manifest (`appsscript.json`) and replace its contents with the version provided here.
+ 
+ ## Deploy as a Web App
+ 
+ 1. In the editor choose **Deploy > New deployment**.
+ 2. Select **Web app** as the deployment type.
+ 3. Provide a description and confirm the execution and access settings.
+ 4. Click **Deploy** and authorize the script.
+ 
+ After deployment you will receive a web app URL. Visiting that URL loads `index.html` and starts the tool.
+ 
+ ## Basic Usage
+ 
+1. Enter the heat source length and width.
+2. Add material layers in the table.
+   Each layer requires thickness **t**, in‑plane conductivity **kxy** and through‑plane conductivity **kz**.
+3. Click **Run** to calculate thermal resistance.
+4. Use **Monte Carlo** to simulate uncertainty; adjust iterations and deviation in the Monte Carlo section.
+5. Hover over form labels to view tooltips explaining the parameters.
+6. Tooltips on the results table and graphs explain the values shown.
+ 
+## Calculation Approach
 
-  <section id="overview">
-    <h2>Overview</h2>
-    <p>This calculator determines the thermal resistance (R<sub>th</sub>) and resulting temperature rise (&Delta;T) of multi-layer electronic assemblies. It accounts for heat spreading through anisotropic materials and complex multi-die layouts. It's particularly useful for analyzing thermal paths and predicting component temperatures in semiconductor packages, power modules, and stacked-die configurations.</p>
-    
-    <h3>Key Features</h3>
-    <ul>
-      <li><strong>Anisotropic Heat Spreading:</strong> Accounts for different thermal conductivities in XY-plane vs. Z-direction.</li>
-      <li><strong>Advanced Multi-Die Support:</strong> Models thermal interactions in layouts including Line, 2-Lines, Quincunx and fully Custom to find max and average die temperatures.</li>
-      <li><strong>Temperature Rise Calculation:</strong> Directly computes temperature increase (&Delta;T in &deg;C) based on die power input.</li>
-      <li><strong>Advanced Visualizations:</strong> Renders separate X and Y-axis side views of heat dissipation and a top-down view of the die layout and final spread area.</li>
-      <li><strong>Flexible Cooling Models:</strong> Supports direct R<sub>th</sub> specification or a convection calculation.</li>
-      <li><strong>Sensitivity Analysis:</strong> Identifies critical parameters affecting thermal performance.</li>
-      <li><strong>Monte Carlo Simulation:</strong> Assesses the impact of manufacturing tolerances and material uncertainties.</li>
-      <li><strong>Parameter Sweep Analysis:</strong> Sweeps a chosen layer parameter and plots its effect on total R<sub>th</sub>.</li>
-      <li><strong>Thermal Crosstalk Matrix:</strong> Visual table showing how each die's heat influences the others.</li>
-      <li><strong>Improved Cooler Model:</strong> Uses the bounding box of the final spread area for convection calculations.</li>
-      <li><strong>Save/Load Configurations:</strong> Save your entire stack-up and settings to your browser to reload them later.</li>
-      <li><strong>Loader & Error Box:</strong> Indicates progress and reports invalid inputs.</li>
-      <li><strong>Light/Dark Theme:</strong> Toggle for user comfort.</li>
-    </ul>
-  </section>
+The solver divides each layer into 1&nbsp;µm slices and updates the heat-spreading
+footprint after every slice using angles derived from the conductivity ratios.
+Resistance is accumulated slice by slice; if the cumulative value ever exceeds
+`RTH_LIMIT` (100&nbsp;°C/W) the calculation aborts. Once all layers are processed, the
+selected cooler model—direct resistance or a convection term based on the final
+area—is added to obtain the per-die and total stack resistance.
 
+## Assumptions & Limitations
 
+* Source length and width are entered in **millimetres**.
+* Layer thicknesses use **micrometres** and conductivities are in **W/(m·K)**.
+* Results (and limits) are reported in **°C/W**.
+* Each layer is considered homogeneous; spreading is idealised as described
+  above.
+* Calculations stop if cumulative Rth exceeds 100&nbsp;°C/W.
 
-  <section id="getting-started">
-    <h2>Getting Started</h2>
-    <h3>Quick Start Steps</h3>
-    <ol>
-      <li><strong>Define Heat Source:</strong> Enter die dimensions (mm), power dissipation (W), number of dies, and their layout with X and Y spacing.</li>
-      <li><strong>Build Stack-Up:</strong> Add material layers from die to cooler, specifying thickness (µm) and thermal conductivities (W/m·K).</li>
-      <li><strong>Configure Cooling:</strong> Choose your cooling method (none, direct R<sub>th</sub>, or convection).</li>
-      <li><strong>Calculate:</strong> Click "Calculate" to run the thermal analysis.</li>
-      <li><strong>Analyze Results:</strong> Review the primary &Delta;T output, the detailed visualizations, and the thermal resistance breakdown in the summary table.</li>
-    </ol>
-  </section>
-
-  <section id="inputs">
-    <h2>Input Parameters</h2>
-    
-    <h3>Heat Source (Die) Parameters</h3>
-    <table class="param-table">
-      <tr>
-        <th>Parameter</th>
-        <th>Units</th>
-        <th>Description</th>
-        <th>Typical Range</th>
-      </tr>
-      <tr>
-        <td>Length / Width</td>
-        <td>mm</td>
-        <td>Die footprint dimensions.</td>
-        <td>1-20 mm</td>
-      </tr>
-      <tr>
-        <td># of dies</td>
-        <td>-</td>
-        <td>Number of identical, parallel heat sources.</td>
-        <td>1-16</td>
-      </tr>
-      <tr>
-        <td>Power per die</td>
-        <td>W</td>
-        <td>The power dissipated by each individual die. Used to calculate temperature rise (&Delta;T).</td>
-        <td>1-500 W</td>
-      </tr>
-      <tr>
-        <td>Spacing X</td>
-        <td>mm</td>
-        <td>Horizontal center-to-center distance between dies for predefined layouts.</td>
-        <td>0.5-20 mm</td>
-      </tr>
-      <tr>
-        <td>Spacing Y</td>
-        <td>mm</td>
-        <td>Vertical center-to-center distance between dies for predefined layouts.</td>
-        <td>0.5-20 mm</td>
-      </tr>
-       <tr>
-        <td>Layout</td>
-        <td>-</td>
-        <td>Arrangement of dies. 'Line', '2-Lines', and 'Quincunx' use the Spacing X/Y fields. 'Custom' uses the Coords field.</td>
-        <td>-</td>
-      </tr>
-       <tr>
-        <td>Coords</td>
-        <td>-</td>
-        <td>For 'Custom' layout, specify semicolon-separated coordinates for each die center (e.g., `0,0; 10.5,0; 0,10.5`).</td>
-        <td>-</td>
-      </tr>
-    </table>
-
-    <h3>Material Stack-Up Parameters</h3>
-    <p>Build your thermal stack from the heat source down to the cooler, layer by layer.</p>
-    
-    <table class="param-table">
-       <tr>
-        <th>Parameter</th>
-        <th>Units</th>
-        <th>Description</th>
-        <th>Typical Values</th>
-      </tr>
-      <tr>
-        <td>Material</td>
-        <td>-</td>
-        <td>Descriptive name for reference.</td>
-        <td>Die, Solder, Substrate, TIM, etc.</td>
-      </tr>
-      <tr>
-        <td>t</td>
-        <td>&micro;m</td>
-        <td>Layer thickness.</td>
-        <td>10-2000 &micro;m</td>
-      </tr>
-      <tr>
-        <td>k<sub>xy</sub></td>
-        <td>W/(m·K)</td>
-        <td>In-plane (X and Y directions) thermal conductivity.</td>
-        <td>0.1-400</td>
-      </tr>
-      <tr>
-        <td>k<sub>z</sub></td>
-        <td>W/(m·K)</td>
-        <td>Through-thickness (Z direction) thermal conductivity.</td>
-        <td>0.1-400</td>
-      </tr>
-    </table>
-    
-    <h3>Cooler/Base & Monte Carlo</h3>
-    <p>Use these inputs to specify the cooler resistance (direct value or convection coefficient) and to configure uncertainty parameters. Detailed usage is covered in the Monte Carlo section below.</p>
-  </section>
-
-  <section id="usability">
-    <h2>Usability Features</h2>
-    <ul>
-      <li><strong>💾 Save Stack:</strong> Saves all current input values (die, cooler, layers, etc.) to your browser's local storage.</li>
-      <li><strong>📂 Load Stack:</strong> Restores the last saved configuration. Useful for resuming work or comparing design variations.</li>
-      <li><strong>Dark/Light Mode:</strong> Toggles the UI theme for better visibility. Your preference is saved.</li>
-      <li><strong>README:</strong> Shows or hides this tutorial panel.</li>
-    </ul>
-  </section>
-
-  <section id="results">
-    <h2>Understanding Results</h2>
-    
-    <h3>Primary Outputs</h3>
-    <ul>
-      <li><strong>&Delta;T / die:</strong> The primary result, representing the temperature rise from ambient to the die. This is the key performance metric. For multi-die layouts, the tool reports both the **maximum** &Delta;T (for the hottest die) and the **average** &Delta;T across all dies.</li>
-      <li><strong>Total stack R<sub>th</sub>:</strong> The equivalent thermal resistance for all dies and the cooler combined, presented in &deg;C/W.</li>
-    </ul>
-
-    <h3>Results Visualizations</h3>
-    <p>The visualizations provide an intuitive understanding of how heat moves through the stack.</p>
-    <ul>
-      <li><strong>X/Y Axis Thermal Dissipation:</strong> These two side-view diagrams show the heat spreading "cone" through the material layers along the X and Y axes, respectively. The gradient color represents the thermal path, and the expansion of the cone shows the effectiveness of heat spreading.</li>
-      <li><strong>Top View Layout:</strong> This diagram shows the die layout from above. The inner (red) rectangles are the actual die footprints. The outer (blue) rectangles represent the final area the heat has spread to at the bottom of the stack, illustrating how the individual thermal zones expand and potentially interact.</li>
-      <li><strong>Crosstalk Matrix:</strong> A color-coded table quantifying how much each die heats its neighbors.</li>
-    </ul>
-
-    <h3>Summary Table Columns</h3>
-    <p>This table breaks down the thermal resistance (R<sub>th</sub>) contributions of each layer and the cooler.</p>
-    <table class="results-table">
-       <tr>
-        <th>Column</th>
-        <th>Description</th>
-        <th>Interpretation</th>
-      </tr>
-      <tr>
-        <td>R<sub>th</sub> (total stack)</td>
-        <td>A layer's thermal resistance, accounting for all dies in parallel.</td>
-        <td>Identifies the individual resistance contribution of each layer.</td>
-      </tr>
-      <tr>
-        <td>Cumulative R<sub>th</sub></td>
-        <td>The running total of thermal resistance through the stack.</td>
-        <td>Shows how resistance accumulates from the die to the cooler.</td>
-      </tr>
-      <tr>
-        <td>Length (Y) at bottom</td>
-        <td>The effective width of the heat path after spreading through that layer.</td>
-        <td>Measures spreading effectiveness. A larger number is better.</td>
-      </tr>
-      <tr>
-        <td>Contribution [%]</td>
-        <td>The percentage of the total stack R<sub>th</sub> (excluding the cooler) that this layer is responsible for.</td>
-        <td>Quickly identifies the biggest thermal bottlenecks in your stack-up.</td>
-      </tr>
-      <tr>
-        <td>Sensitivity Index [%]</td>
-        <td>A root-sum-square measure of how much the total R<sub>th</sub> changes in response to variations in this layer's thickness and conductivity (t, k<sub>xy</sub>, k<sub>z</sub>).</td>
-        <td>A high value means the design is very sensitive to this layer's properties, making it a critical component for process control or optimization.</td>
-      </tr>
-  </table>
-  </section>
-
-  <section id="monte-carlo">
-    <h2>Monte Carlo Analysis</h2>
-    <p>The Monte Carlo option runs many simulations with random perturbations to layer thickness and conductivity. Use the checkbox in the control panel to enable it.</p>
-    <ol>
-      <li>Choose the number of <em>Iterations</em> and percentage uncertainties for <em>t</em> and <em>k</em>.</li>
-      <li>Click <strong>Run Monte&nbsp;Carlo</strong> to generate a distribution of total R<sub>th</sub>.</li>
-    </ol>
-    <p>The tool displays the mean, standard deviation and a histogram of the results. The most critical layer is highlighted in the summary table.</p>
-  </section>
-
-  <section id="parameter-sweep">
-    <h2>Parameter Sweep</h2>
-    <p>This feature varies one layer parameter over a range to show its impact on R<sub>th</sub>.</p>
-    <ol>
-      <li>Enable <em>Sweep Analysis</em> and select the target layer and parameter (t, k<sub>xy</sub>, k<sub>z</sub>).</li>
-      <li>Specify the start value, end value and the number of steps.</li>
-      <li>Run the sweep to view the line chart of R<sub>th</sub> vs. the swept value. Axes automatically scale for clarity.</li>
-    </ol>
-  </section>
-
-  <section id="mathematical-models">
-    <h2>Mathematical Models</h2>
-
-    <h3>Temperature Rise (&Delta;T) Calculation</h3>
-    <p>The temperature rise of each die is obtained from the solved thermal resistance:</p>
-    <div class="math-section">
-      <p>&Delta;T<sub>die</sub> [°C] = R<sub>th, die</sub> [°C/W] &times; Power<sub>per die</sub> [W]</p>
-    </div>
-
-    <h3>Layer-by-Layer Solver</h3>
-    <p>Each material layer is sliced into 1&nbsp;µm increments. For a slice of thickness &Delta;t the vertical resistance is</p>
-    <div class="math-section">
-      <p>R<sub>slice</sub> = &Delta;t / (k<sub>z</sub> &times; A<sub>slice</sub>)</p>
-    </div>
-    <p>The spreading footprint increases after every slice according to</p>
-    <div class="math-section">
-      <p>&Delta;w = 2 &times; &Delta;t &times; &radic;(k<sub>xy</sub>/k<sub>z</sub>)</p>
-    </div>
-    <p>Widths in the X and Y directions are tracked separately for anisotropic materials. Slice resistances accumulate until the sum reaches the layer value.</p>
-
-    <h3>Lateral Coupling Between Dies</h3>
-    <p>After solving each die vertically, the tool computes overlap areas between every pair of dies to build a conductance matrix:</p>
-    <div class="math-section">
-      <p>R<sub>ij</sub> = &Sigma;<sub>layers</sub> t<sub>l</sub> / (k<sub>xy,l</sub> &times; A<sub>ij,l</sub>)</p>
-    </div>
-    <p>The matrix includes these lateral conductances plus the vertical stack conductances to each die.</p>
-
-    <h3>Cooler Boundary</h3>
-    <p>The cooler is added as either a fixed resistance or a convection term. For convection:</p>
-    <div class="math-section">
-      <p>R<sub>cool</sub> = 1 / (h<sub>conv</sub> &times; A<sub>bb</sub>)</p>
-    </div>
-    <p>A<sub>bb</sub> is the bounding-box area of all die footprints at the stack bottom.</p>
-
-    <h3>Temperature Solution</h3>
-    <p>The final system [G]{T} = {P} is solved to obtain die temperatures. The largest temperature rise defines the per-die R<sub>th</sub>, while dividing by total power yields the overall stack resistance.</p>
-    </section>
-
-  <section id="best-practices">
-    <h2>Best Practices</h2>
-    
-    <h3>Design & Analysis</h3>
-    <ul>
-        <li><strong>Use Layouts to Optimize:</strong> Experiment with different 'Layout' options and the 'Spacing X' and 'Spacing Y' settings to see the impact on the maximum die temperature. Sometimes a non-obvious arrangement can improve performance.</li>
-        <li><strong>Save Iterations:</strong> Use the 'Save Stack' and 'Load Stack' features to create a baseline design, then load it and make changes to compare different material choices or geometries.</li>
-        <li><strong>Focus on Bottlenecks:</strong> Use the 'Contribution [%]' and 'Sensitivity Index [%]' columns to identify the most critical layers. Small improvements to these layers will yield the largest overall performance gains.</li>
-        <li><strong>Validate Anisotropy:</strong> For materials like composites or PCBs, ensure the k<sub>xy</sub> and k<sub>z</sub> values are correct, as the ratio between them is a primary driver of heat spreading.</li>
-    </ul>
-  </section>
-
-  <section id="troubleshooting">
-    <h2>Troubleshooting</h2>
-    
-    <h3>Common Issues</h3>
-    <table class="trouble-table">
-      <tr>
-        <td>Save/Load Not Working</td>
-        <td>Browser privacy settings blocking local storage, or storage is full.</td>
-        <td>Ensure your browser allows sites to save data. Try clearing the site data for script.google.com.</td>
-      </tr>
-      <tr>
-        <td>Max and Average &Delta;T are very different</td>
-        <td>Significant thermal crosstalk between dies.</td>
-        <td>This is expected in dense layouts. The 'max' value is your worst-case scenario. Increase die spacing (X and Y) or improve heat spreading to reduce the difference.</td>
-      </tr>
-    </table>
-    </section>
-
-</div>
-
-<style>
-.readme-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  line-height: 1.6;
-}
-
-.readme-content h1 {
-  text-align: center;
-}
-
-body:not(.dark-theme) .readme-content {
-  background: #f0f0f0;
-  color: #111;
-}
-
-body.dark-theme .readme-content {
-  background: #172938;
-  color: #E8EEF2;
-}
-
-.toc {
-  background: #dfe9f2;
-  border-left: 4px solid #007acc;
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 30px;
-}
-
-body.dark-theme .toc {
-  background: #102233;
-  border-left-color: #4FC3F7;
-}
-
-.toc a {
-  color: #007acc;
-  text-decoration: none;
-}
-
-body.dark-theme .toc a {
-  color: #4FC3F7;
-}
-
-.toc a:hover {
-  text-decoration: underline;
-}
-
-.math-section {
-  background: #eaeaea;
-  padding: 10px;
-  margin: 15px 0;
-  border-left: 3px solid #006bb3;
-  border-radius: 4px;
-}
-
-body.dark-theme .math-section {
-  background: #102233;
-  border-left-color: #9ED1F5;
-}
-
-.math-section p {
-  font-family: 'Courier New', monospace;
-}
-
-@media (max-width: 768px) {
-  .readme-content {
-    padding: 15px;
-  }
-}
-</style>
+## Contributing
+ 
+Improvements are welcome! Fork this repo and open a pull request with your changes.
+Use the **Run** button in the Apps Script editor to manually test your updates.
+If you add unit tests later, run them before submitting your PR.
