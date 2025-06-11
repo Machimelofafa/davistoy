@@ -1,6 +1,21 @@
 # Stack-up Rth Calculator
  
- This repository contains a Google Apps Script web app that estimates the thermal resistance (Rth) of a material stack-up. The UI is delivered from `index.html` and the logic resides in `Code.gs`.
+This repository contains a Google Apps Script web app that estimates the thermal resistance (Rth) of a material stack-up. The UI is delivered from `index.html` and the logic resides in `Code.gs`.
+
+## Key Features
+
+- **Anisotropic Heat Spreading** between XY and Z directions
+- **Advanced Multi-Die Support** for common and custom layouts
+- **Temperature Rise Calculation** directly from per‑die power
+- **Detailed Visualizations** including side views and top layouts
+- **Flexible Cooling Models** with direct R<sub>th</sub> or convection
+- **Sensitivity Analysis** highlighting critical layers
+- **Monte Carlo Simulation** for uncertainty quantification
+- **Parameter Sweep** plots the effect of varying layer properties
+- **Thermal Crosstalk Matrix** shows die interactions
+- **Improved Cooler Model** using the final spread area
+- **Save/Load Configurations** and progress/error reporting
+- **Light/Dark Theme** for comfortable viewing
  
  ## Import into Google Apps Script
  
@@ -24,7 +39,7 @@
 2. Add material layers in the table.
    Each layer requires thickness **t**, in‑plane conductivity **kxy** and through‑plane conductivity **kz**.
 3. Click **Run** to calculate thermal resistance.
-4. Use **Monte Carlo** to simulate uncertainty; adjust iterations and deviation in the Monte Carlo section.
+4. Use **Monte Carlo** or **Parameter Sweep** to explore uncertainties and trends.
 5. Hover over form labels to view tooltips explaining the parameters.
 6. Tooltips on the results table and graphs explain the values shown.
  
