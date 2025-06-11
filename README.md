@@ -8,11 +8,10 @@ This repository contains a Google Apps Script web app that estimates the thermal
 - **Advanced Multi-Die Support** for common and custom layouts
 - **Temperature Rise Calculation** directly from per‑die power
 - **Detailed Visualizations** including side views and top layouts
-- **Flexible Cooling Models** with direct R<sub>th</sub> or convection
+- **Cooling Model** using a convection coefficient and spread area
 - **Sensitivity Analysis** highlighting critical layers
 - **Monte Carlo Simulation** for uncertainty quantification
 - **Parameter Sweep** plots the effect of varying layer properties
-- **Thermal Crosstalk Matrix** shows die interactions
 - **Improved Cooler Model** using the final spread area
 - **Save/Load Configurations** and progress/error reporting
 - **Light/Dark Theme** for comfortable viewing

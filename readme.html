@@ -33,12 +33,11 @@
       <li><strong>Advanced Multi-Die Support:</strong> Models thermal interactions in layouts including Line, 2-Lines, Quincunx and fully Custom to find max and average die temperatures.</li>
       <li><strong>Temperature Rise Calculation:</strong> Directly computes temperature increase (&Delta;T in &deg;C) based on die power input.</li>
       <li><strong>Advanced Visualizations:</strong> Renders separate X and Y-axis side views of heat dissipation and a top-down view of the die layout and final spread area.</li>
-      <li><strong>Flexible Cooling Models:</strong> Supports direct R<sub>th</sub> specification or a convection calculation.</li>
+      <li><strong>Cooling Model:</strong> Uses a convection coefficient based on the final spread area.</li>
       <li><strong>Sensitivity Analysis:</strong> Identifies critical parameters affecting thermal performance.</li>
       <li><strong>Monte Carlo Simulation:</strong> Assesses the impact of manufacturing tolerances and material uncertainties.</li>
       <li><strong>Parameter Sweep Analysis:</strong> Sweeps a chosen layer parameter and plots its effect on total R<sub>th</sub>.</li>
-      <li><strong>Thermal Crosstalk Matrix:</strong> Visual table showing how each die's heat influences the others.</li>
-      <li><strong>Improved Cooler Model:</strong> Uses the bounding box of the final spread area for convection calculations.</li>
+      <li><strong>Improved Cooler Model:</strong> Uses the union of final spread areas for convection calculations.</li>
       <li><strong>Save/Load Configurations:</strong> Save your entire stack-up and settings to your browser to reload them later.</li>
       <li><strong>Loader & Error Box:</strong> Indicates progress and reports invalid inputs.</li>
       <li><strong>Light/Dark Theme:</strong> Toggle for user comfort.</li>
@@ -178,7 +177,6 @@
     <ul>
       <li><strong>X/Y Axis Thermal Dissipation:</strong> These two side-view diagrams show the heat spreading "cone" through the material layers along the X and Y axes, respectively. The gradient color represents the thermal path, and the expansion of the cone shows the effectiveness of heat spreading.</li>
       <li><strong>Top View Layout:</strong> This diagram shows the die layout from above. The inner (red) rectangles are the actual die footprints. The outer (blue) rectangles represent the final area the heat has spread to at the bottom of the stack, illustrating how the individual thermal zones expand and potentially interact.</li>
-      <li><strong>Crosstalk Matrix:</strong> A color-coded table quantifying how much each die heats its neighbors.</li>
     </ul>
 
     <h3>Summary Table Columns</h3>

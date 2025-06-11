@@ -12,7 +12,7 @@ const RTH_LIMIT = 100; // abort if cumulative Rth exceeds this
  * Throws descriptive errors when required fields are missing or invalid.
  */
 function validatePayload(p) {
-  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'coolerRth', 'spacingX', 'spacingY', 'diePower'];
+  var numericFields = ['srcLen', 'srcWid', 'dies', 'hConv', 'spacingX', 'spacingY', 'diePower'];
   numericFields.forEach(function(field) {
     if (typeof p[field] !== 'number' || isNaN(p[field])) {
       throw new Error('Invalid payload: "' + field + '" must be a number');
@@ -23,9 +23,6 @@ function validatePayload(p) {
   }
   if (p.coolerMode === 'conv' && p.hConv <= 0) {
     throw new Error('hConv must be positive for convection mode');
-  }
-  if (p.coolerMode === 'direct' && p.coolerRth <= 0) {
-    throw new Error('coolerRth must be positive for direct mode');
   }
   if (typeof p.diePower === 'number' && p.diePower <= 0) {
     throw new Error('diePower must be positive');
@@ -125,22 +122,12 @@ function solveSingleDieStack(p1) {
     widthsY.push(slice_iter_widY_aniso);
   });
 
-  let rCool = 0;
-  const final_area_for_cooler = len * wid;
-  if (p1.coolerMode === 'conv') {
-    if (p1.hConv > 0 && final_area_for_cooler > 0) {
-      rCool = 1 / (p1.hConv * final_area_for_cooler);
-    } else {
-      rCool = Infinity;
-    }
-  } else if (p1.coolerMode === 'direct') {
-    rCool = p1.coolerRth;
-  }
+  let rCool = 0; // cooler handled later at system level
 
   const rStack = rCum.length > 0 ? rCum[rCum.length - 1] : 0;
   const rVert = rStack + rCool;
 
-  return { rEach, rCum, lengths, widths, widthsX, widthsY, rCool, rStack, rVert };
+  return { rEach, rCum, lengths, widths, widthsX, widthsY, rStack, rVert };
 }
 
 /**
@@ -271,23 +258,6 @@ function computeUnionArea(rects) {
 }
 
 /** Compute the area of the bounding box enclosing a set of rectangles. */
-function computeBoundingBoxArea(rects) {
-  if (!rects || rects.length === 0) return 0;
-  let min_x = rects[0].x0;
-  let max_x = rects[0].x1;
-  let min_y = rects[0].y0;
-  let max_y = rects[0].y1;
-  for (let i = 1; i < rects.length; i++) {
-    const r = rects[i];
-    if (r.x0 < min_x) min_x = r.x0;
-    if (r.x1 > max_x) max_x = r.x1;
-    if (r.y0 < min_y) min_y = r.y0;
-    if (r.y1 > max_y) max_y = r.y1;
-  }
-  const width = max_x - min_x;
-  const height = max_y - min_y;
-  return width * height;
-}
 
 /**
  * Build the final conductance matrix including lateral coupling and cooler.
@@ -367,20 +337,16 @@ function buildConductanceMatrix(p, singleDieResults) {
     footprints.push({ x0: cx - wX/2, x1: cx + wX/2, y0: cy - wY/2, y1: cy + wY/2 });
   }
 
-  const A_bounding_box = computeBoundingBoxArea(footprints);
+  const A_union = computeUnionArea(footprints);
   let G_cool_tot = 0;
   if (p.coolerMode === 'conv') {
-    if (p.hConv > 0 && A_bounding_box > 0) {
-      G_cool_tot = p.hConv * A_bounding_box;
-    }
-  } else if (p.coolerMode === 'direct') {
-    if (p.coolerRth > 0) {
-      G_cool_tot = 1 / p.coolerRth;
+    if (p.hConv > 0 && A_union > 0) {
+      G_cool_tot = p.hConv * A_union;
     }
   }
   Gnew[N][N] += G_cool_tot;
 
-  return { G: Gnew, coords };
+  return { G: Gnew, coords, unionArea: A_union };
 }
 
 /**
@@ -443,23 +409,21 @@ function coreSolve(p) {
 
   const sys = solveSystem(matrixInfo.G, Pvec);
 
-  // ----- Compute Crosstalk Matrix -----
-  const rthMatrix = Array.from({ length: N }, () => Array(N).fill(0));
-  for (let j = 0; j < N; j++) {
-    const Ptest = new Array(NN).fill(0);
-    Ptest[j] = 1; // unit power for source die j
-    const temps = solveSystem(matrixInfo.G, Ptest).dieTemps;
-    for (let i = 0; i < N; i++) {
-      rthMatrix[i][j] = temps[i];
-    }
-  }
-  const tempCrosstalkMatrix = rthMatrix.map(row => row.map(v => v * (p.diePower || 1)));
 
   const rDie = sys.maxTemp;
   const P_total = N * (p.diePower || 1.0);
   const rTotal = P_total > 0 ? sys.maxTemp / P_total : 0;
 
-  const { rEach, rCum, lengths, widths, widthsX, widthsY, rCool, rStack } = tplResult;
+  let rCool = 0;
+  if (p.coolerMode === 'conv') {
+    if (p.hConv > 0 && matrixInfo.unionArea > 0) {
+      rCool = 1 / (p.hConv * matrixInfo.unionArea);
+    } else {
+      rCool = Infinity;
+    }
+  }
+
+  const { rEach, rCum, lengths, widths, widthsX, widthsY, rStack } = tplResult;
   const materialNames = p.layers.map(function(L){ return typeof L.mat === 'string' ? L.mat : ''; });
 
   return {
@@ -477,9 +441,7 @@ function coreSolve(p) {
     rCoolPerDie: rCool,
     rStack,
     rDieList: sys.dieTemps,
-    rDieAvg: sys.avgTemp,
-    rthMatrix,
-    tempCrosstalkMatrix
+    rDieAvg: sys.avgTemp
   };
 }
 function computeSensitivity(p, baseR) {
@@ -509,13 +471,6 @@ function computeSensitivity(p, baseR) {
     var rPlusC = coreSolve(plusC).rDie;
     var rMinusC = coreSolve(minusC).rDie;
     cooler = { hConv: ((rPlusC - rMinusC) / (2 * deltaC)) * (p.hConv / baseR) };
-  } else if (p.coolerMode === 'direct') {
-    var deltaD = (p.coolerRth || 0) * frac || frac;
-    var plusD = Object.assign({}, p, { coolerRth: p.coolerRth + deltaD, sensitivity:false });
-    var minusD = Object.assign({}, p, { coolerRth: Math.max(p.coolerRth - deltaD, 1e-9), sensitivity:false });
-    var rPlusD = coreSolve(plusD).rDie;
-    var rMinusD = coreSolve(minusD).rDie;
-    cooler = { coolerRth: ((rPlusD - rMinusD) / (2 * deltaD)) * (p.coolerRth / baseR) };
   }
 
   return { layers: layerSens, cooler: cooler };
@@ -562,7 +517,6 @@ function solveMonteCarlo(p) {
         layout:  p.layout,
         coords:  p.coords,
         coolerMode: p.coolerMode,
-        coolerRth:  p.coolerRth,
         hConv:      p.hConv,
         diePower:  p.diePower,
         layers: perturbed
@@ -621,7 +575,6 @@ function solveSweep(p) {
       layout:  p.layout,
       coords:  p.coords,
       coolerMode: p.coolerMode,
-      coolerRth:  p.coolerRth,
       hConv:      p.hConv,
       diePower:  p.diePower,
       layers: layersCopy

@@ -48,21 +48,14 @@
     Mode&nbsp;
     <select id="coolSel">
       <option value="none">None&nbsp;(only&nbsp;stack&nbsp;conduction)</option>
-      <option value="direct">Direct&nbsp;Rth&nbsp;value</option>
       <option value="conv" selected>Calculated&nbsp;convection&nbsp;Rth</option>
     </select>
-  </label>
-
-  <!-- shown only when “Direct Rth value” is selected -->
-  <label id="directBox" class="hide" title="Thermal resistance value of the cooler">
-    Rth&nbsp;[°C/W]
-    <input id="coolRth" type="number" step="0.01" value="0.30">
   </label>
 
   <!-- shown only when “Calculated convection Rth” is selected -->
     <label id="convBox" title="Convection heat-transfer coefficient">
       h&nbsp;[W/m²K]
-      <input id="hConv" type="number" value="38500">
+      <input id="hConv" type="number" value="41152">
     </label>
 
     <label title="Temperature of the coolant or environment in °C">
