@@ -768,16 +768,35 @@ function drawSweepChart(data) {
   sweepChart.appendChild(NS('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: H - margin.bottom, stroke: '#888' }));
   sweepChart.appendChild(NS('line', { x1: margin.left, y1: H - margin.bottom, x2: W - margin.right, y2: H - margin.bottom, stroke: '#888' }));
 
+  // axis ticks
+  const ticks = 5;
+  for (let i = 0; i <= ticks; i++) {
+    const tx = margin.left + (plotW * i) / ticks;
+    const ty = margin.top + (plotH * i) / ticks;
+    const xVal = minX + (maxX - minX) * (i / ticks);
+    const yVal = maxY - (maxY - minY) * (i / ticks);
+    // x-axis tick
+    sweepChart.appendChild(NS('line', { x1: tx, y1: H - margin.bottom, x2: tx, y2: H - margin.bottom + 4, stroke: '#888' }));
+    const xt = NS('text', { x: tx, y: H - margin.bottom + 15, 'text-anchor':'middle', 'class':'axis-text', 'font-size':'8px' });
+    xt.textContent = xVal.toFixed(3);
+    sweepChart.appendChild(xt);
+    // y-axis tick
+    sweepChart.appendChild(NS('line', { x1: margin.left - 4, y1: ty, x2: margin.left, y2: ty, stroke: '#888' }));
+    const yt = NS('text', { x: margin.left - 6, y: ty + 3, 'text-anchor':'end', 'class':'axis-text', 'font-size':'8px' });
+    yt.textContent = yVal.toFixed(3);
+    sweepChart.appendChild(yt);
+  }
+
   const points = data.map(d => `${xPos(d.sweptValue)},${yPos(d.resultValue)}`).join(' ');
   sweepChart.appendChild(NS('polyline', { points, fill: 'none', stroke: '#4FC3F7', 'stroke-width': '2' }));
 
   const xTitle = sweepParam ? sweepParam.options[sweepParam.selectedIndex].text : '';
   const layerNum = sweepLayer ? sweepLayer.value : '1';
-  const xAxisTitle = NS('text', { x: margin.left + plotW/2, y: H - 5, 'text-anchor': 'middle', 'class':'axis-text' });
+  const xAxisTitle = NS('text', { x: margin.left + plotW/2, y: H - 5, 'text-anchor': 'middle', 'class':'axis-text', 'font-size':'8px' });
   xAxisTitle.textContent = `Layer ${layerNum} ${xTitle}`;
   sweepChart.appendChild(xAxisTitle);
 
-  const yAxisTitle = NS('text', { x: 15, y: margin.top + plotH/2, transform:`rotate(-90 15 ${margin.top + plotH/2})`, 'text-anchor':'middle', 'class':'axis-text' });
+  const yAxisTitle = NS('text', { x: 15, y: margin.top + plotH/2, transform:`rotate(-90 15 ${margin.top + plotH/2})`, 'text-anchor':'middle', 'class':'axis-text', 'font-size':'8px' });
   yAxisTitle.textContent = 'Rth (total stack) °C/W';
   sweepChart.appendChild(yAxisTitle);
 
@@ -785,8 +804,8 @@ function drawSweepChart(data) {
     const tx = xPos(d.sweptValue);
     const ty = yPos(d.resultValue);
     sweepChart.appendChild(NS('circle', { cx: tx, cy: ty, r: 3, fill: '#ff5722' }));
-    const lbl = NS('text', { x: tx, y: ty - 6, 'text-anchor':'middle', 'class':'axis-text', 'font-size':'11px' });
-    lbl.textContent = d.resultValue.toFixed(2);
+    const lbl = NS('text', { x: tx, y: ty - 6, 'text-anchor':'middle', 'class':'axis-text', 'font-size':'8px' });
+    lbl.textContent = d.resultValue.toFixed(3);
     sweepChart.appendChild(lbl);
   });
 
