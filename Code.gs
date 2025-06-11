@@ -567,7 +567,7 @@ function solveMonteCarlo(p) {
         diePower:  p.diePower,
         layers: perturbed
       });
-      results.push(r.rDie);
+      results.push(r.rTotal);
       let maxV = -Infinity, maxI = 0;
       r.rEach.forEach((val, idx) => {
         if (typeof val === 'number' && val > maxV) { maxV = val; maxI = idx; }
