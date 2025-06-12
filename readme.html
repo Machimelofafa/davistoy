@@ -51,7 +51,7 @@
     <ol>
       <li><strong>Define Heat Source:</strong> Enter die dimensions (mm), power dissipation (W), number of dies, and their layout with X and Y spacing.</li>
       <li><strong>Build Stack-Up:</strong> Add material layers from die to cooler, specifying thickness (µm) and thermal conductivities (W/m·K).</li>
-      <li><strong>Configure Cooling:</strong> Choose your cooling method (none, direct R<sub>th</sub>, or convection).</li>
+      <li><strong>Configure Cooling:</strong> Choose your cooling method (none or convection).</li>
       <li><strong>Calculate:</strong> Click "Calculate" to run the thermal analysis.</li>
       <li><strong>Analyze Results:</strong> Review the primary &Delta;T output, the detailed visualizations, and the thermal resistance breakdown in the summary table.</li>
     </ol>
@@ -149,7 +149,7 @@
     </table>
     
     <h3>Cooler/Base & Monte Carlo</h3>
-    <p>Use these inputs to specify the cooler resistance (direct value or convection coefficient) and to configure uncertainty parameters. Detailed usage is covered in the Monte Carlo section below.</p>
+    <p>Use these inputs to specify the cooler resistance (convection coefficient) and to configure uncertainty parameters. Detailed usage is covered in the Monte Carlo section below.</p>
   </section>
 
   <section id="usability">
@@ -265,7 +265,7 @@
     <div class="math-section">
       <p>R<sub>cool</sub> = 1 / (h<sub>conv</sub> &times; A<sub>bb</sub>)</p>
     </div>
-    <p>A<sub>bb</sub> is the bounding-box area of all die footprints at the stack bottom.</p>
+    <p>A<sub>bb</sub> is the area of all die footprints at the stack bottom.</p>
 
     <h3>Temperature Solution</h3>
     <p>The final system [G]{T} = {P} is solved to obtain die temperatures. The largest temperature rise defines the per-die R<sub>th</sub>, while dividing by total power yields the overall stack resistance.</p>
@@ -402,9 +402,13 @@
     <h2>Code Architecture</h2>
     <p>The application follows a client-server architecture typical for Google Apps Script web apps:</p>
     <ul>
-      <li><strong>Backend (<code>Code.gs</code>):</strong> Core logic for parameter validation, thermal calculations and Monte Carlo analyses.</li>
-      <li><strong>Frontend (HTML/JS):</strong> User interface templates including <code>index.html</code>, <code>controls.html</code> and <code>ui.html</code>.</li>
-      <li><strong>Configuration (<code>appsscript.json</code>):</strong> Project manifest defining runtime configuration.</li>
+      <li><strong>Backend (<code>Code.gs</code>):</strong> Contains the server-side mathematical logic for thermal calculations, including the core solver, Monte Carlo simulation, and sensitivity analysis.</li>
+      <li><strong><code>index.html</code>: The main HTML file that defines the user interface structure and loads other HTML components.</li>
+      <li><strong><code>controls.html</code>: Contains the HTML for input controls related to heat source, cooler, and simulation settings.</li>
+      <li><strong><code>index.html</code>: The main HTML file that defines the user interface structure and loads other HTML components.</li>
+      <li><strong><code>ui.html</code>: Houses the client-side JavaScript logic for user interaction, data handling, visualization rendering, and communication with the <code>Code.gs</code> backend.</li>
+      <li><strong><code>styles.html</code>: Defines the CSS styles for the web application, ensuring a consistent and user-friendly appearance.</li>
+      <li><strong><code>Configuration (<code>appsscript.json</code>):</strong> Project manifest defining runtime configuration.</li>
     </ul>
     <h3>Execution Flow</h3>
     <ol>
