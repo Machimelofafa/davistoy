@@ -14,7 +14,6 @@ This repository contains a Google Apps Script web app that estimates the thermal
 - **Parameter Sweep** plots the effect of varying layer properties
 - **Improved Cooler Model** using the final spread area
 - **Save/Load Configurations** and progress/error reporting
-- **Light/Dark Theme** for comfortable viewing
  
  ## Import into Google Apps Script
  

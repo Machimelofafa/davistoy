@@ -40,7 +40,6 @@
       <li><strong>Improved Cooler Model:</strong> Uses the union of final spread areas for convection calculations.</li>
       <li><strong>Save/Load Configurations:</strong> Save your entire stack-up and settings to your browser to reload them later.</li>
       <li><strong>Loader & Error Box:</strong> Indicates progress and reports invalid inputs.</li>
-      <li><strong>Light/Dark Theme:</strong> Toggle for user comfort.</li>
     </ul>
   </section>
 
@@ -158,7 +157,6 @@
     <ul>
       <li><strong>💾 Save Stack:</strong> Saves all current input values (die, cooler, layers, etc.) to your browser's local storage.</li>
       <li><strong>📂 Load Stack:</strong> Restores the last saved configuration. Useful for resuming work or comparing design variations.</li>
-      <li><strong>Dark/Light Mode:</strong> Toggles the UI theme for better visibility. Your preference is saved.</li>
       <li><strong>README:</strong> Shows or hides this tutorial panel.</li>
     </ul>
   </section>
@@ -545,14 +543,9 @@
   text-align: center;
 }
 
-body:not(.dark-theme) .readme-content {
+.readme-content {
   background: #f0f0f0;
   color: #111;
-}
-
-body.dark-theme .readme-content {
-  background: #172938;
-  color: #E8EEF2;
 }
 
 .toc {
@@ -563,19 +556,12 @@ body.dark-theme .readme-content {
   margin-bottom: 30px;
 }
 
-body.dark-theme .toc {
-  background: #102233;
-  border-left-color: #4FC3F7;
-}
 
 .toc a {
   color: #007acc;
   text-decoration: none;
 }
 
-body.dark-theme .toc a {
-  color: #4FC3F7;
-}
 
 .toc a:hover {
   text-decoration: underline;
@@ -589,10 +575,6 @@ body.dark-theme .toc a {
   border-radius: 4px;
 }
 
-body.dark-theme .math-section {
-  background: #102233;
-  border-left-color: #9ED1F5;
-}
 
 .math-section p {
   font-family: 'Courier New', monospace;
