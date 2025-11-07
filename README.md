@@ -1,624 +1,75 @@
-<!-- readme.html -->
-<div class="readme-content card">
-  <h1>Stack-up R<sub>th</sub> &Delta;T Calculator Tutorial</h1>
-  
-  <div class="toc">
-    <h2>Table of Contents</h2>
-    <ul>
-      <li><a href="#overview">Overview</a></li>
-      <li><a href="#getting-started">Getting Started</a></li>
-      <li><a href="#inputs">Input Parameters</a></li>
-      <li><a href="#usability">Usability Features</a></li>
-      <li><a href="#results">Understanding Results</a></li>
-      <li><a href="#monte-carlo">Monte Carlo Analysis</a></li>
-      <li><a href="#parameter-sweep">Parameter Sweep</a></li>
-      <li><a href="#mathematical-models">Mathematical Models</a></li>
-      <li><a href="#best-practices">Best Practices</a></li>
-      <li><a href="#troubleshooting">Troubleshooting</a></li>
-      <li><a href="#material-guide">Material Guide</a></li>
-      <li><a href="#examples">Examples and Case Studies</a></li>
-      <li><a href="#architecture">Code Architecture</a></li>
-      <li><a href="#developer-info">Developer Info</a></li>
-      <li><a href="#validation">Validation &amp; References</a></li>
-    </ul>
-  </div>
+# Stack-up Rth & DeltaT Calculator
 
-  <section id="overview">
-    <h2>Overview</h2>
-    <p>This calculator determines the thermal resistance (R<sub>th</sub>) and resulting temperature rise (&Delta;T) of multi-layer electronic assemblies. It accounts for heat spreading through anisotropic materials and complex multi-die layouts. It's particularly useful for analyzing thermal paths and predicting component temperatures in semiconductor packages, power modules, and stacked-die configurations.</p>
-    
-    <h3>Key Features</h3>
-    <ul>
-      <li><strong>Anisotropic Heat Spreading:</strong> Accounts for different thermal conductivities in XY-plane vs. Z-direction.</li>
-      <li><strong>Advanced Multi-Die Support:</strong> Models thermal interactions in layouts including Line, 2-Lines, Quincunx and fully Custom to find max and average die temperatures.</li>
-      <li><strong>Temperature Rise Calculation:</strong> Directly computes temperature increase (&Delta;T in &deg;C) based on die power input.</li>
-      <li><strong>Advanced Visualizations:</strong> Renders separate X and Y-axis side views of heat dissipation and a top-down view of the die layout and final spread area.</li>
-      <li><strong>Cooling Model:</strong> Uses a convection coefficient based on the final spread area.</li>
-      <li><strong>Sensitivity Analysis:</strong> Identifies critical parameters affecting thermal performance.</li>
-      <li><strong>Monte Carlo Simulation:</strong> Assesses the impact of manufacturing tolerances and material uncertainties.</li>
-      <li><strong>Parameter Sweep Analysis:</strong> Sweeps a chosen layer parameter and plots its effect on total R<sub>th</sub>.</li>
-      <li><strong>Improved Cooler Model:</strong> Uses the union of final spread areas for convection calculations.</li>
-      <li><strong>Save/Load Configurations:</strong> Save your entire stack-up and settings to your browser to reload them later.</li>
-      <li><strong>Loader & Error Box:</strong> Indicates progress and reports invalid inputs.</li>
-    </ul>
-  </section>
+This repository hosts a Google Apps Script web application designed to estimate the thermal resistance (Rth) and temperature rise (ΔT) of multi-layer material stack-ups, commonly found in electronic assemblies. It provides a comprehensive tool for thermal analysis, accounting for complex heat spreading phenomena and multi-die configurations.
+
+## Key Features
+
+*   **Anisotropic Heat Spreading:** Accurately models heat flow considering different thermal conductivities in the XY-plane and Z-direction.
+*   **Advanced Multi-Die Support:** Analyze thermal interactions for various die layouts, including 'Line', '2-Lines', 'Quincunx', and 'Custom' arrangements, to determine maximum and average die temperatures.
+*   **Temperature Rise Calculation:** Directly computes temperature increase (ΔT in °C) based on per-die power dissipation.
+*   **Detailed Visualizations:** Offers insightful graphical representations, including X and Y-axis side views of heat dissipation and a top-down view of die layouts with final heat spread areas.
+*   **Cooling Model:** Incorporates a cooling model using a convection coefficient based on the final spread area.
+*   **Sensitivity Analysis:** Identifies critical layers and parameters that significantly impact thermal performance.
+*   **Monte Carlo Simulation:** Quantifies uncertainty by assessing the impact of manufacturing tolerances and material variations on Rth.
+*   **Parameter Sweep:** Allows sweeping a chosen layer parameter over a range to observe its effect on total Rth.
+*   **Save/Load Configurations:** Enables saving and loading of stack-up configurations directly within the browser for easy design iteration and comparison.
+*   **Progress and Error Reporting:** Provides clear feedback on calculation progress and highlights invalid inputs.
+
+## Getting Started
+
+This web application is built using Google Apps Script. To use it, you need to import the code into your Google Drive and deploy it as a web app.
+
+### Import into Google Apps Script
+
+1.  Open [script.new](https://script.new) to create a new, blank Google Apps Script project.
+2.  Replace the default `Code.gs` content with the content from this repository's `Code.gs` file.
+3.  Create new HTML files in your Apps Script project named `index.html`, `controls.html`, `ui.html`, and `styles.html`. Copy the respective contents from this repository into these new files.
+4.  Open the project manifest file (`appsscript.json`) and replace its contents with the version provided in this repository.
+
+### Deploy as a Web App
+
+1.  In the Google Apps Script editor, navigate to **Deploy > New deployment**.
+2.  Select **Web app** as the deployment type.
+3.  Provide a descriptive name for your deployment and configure the execution and access settings as needed (e.g., 
 
 
+Execute as: `Me` (your Google account) and Who has access: `Anyone` (or `Anyone with Google account` if you want to restrict access).
+4.  Click **Deploy** and authorize the script if prompted.
 
-  <section id="getting-started">
-    <h2>Getting Started</h2>
-    <h3>Quick Start Steps</h3>
-    <ol>
-      <li><strong>Define Heat Source:</strong> Enter die dimensions (mm), power dissipation (W), number of dies, and their layout with X and Y spacing.</li>
-      <li><strong>Build Stack-Up:</strong> Add material layers from die to cooler, specifying thickness (µm) and thermal conductivities (W/m·K).</li>
-      <li><strong>Configure Cooling:</strong> Choose your cooling method (none or convection).</li>
-      <li><strong>Calculate:</strong> Click "Calculate" to run the thermal analysis.</li>
-      <li><strong>Analyze Results:</strong> Review the primary &Delta;T output, the detailed visualizations, and the thermal resistance breakdown in the summary table.</li>
-    </ol>
-  </section>
+After successful deployment, you will receive a web app URL. Visiting this URL in your browser will load the `index.html` and launch the Rth Calculator.
 
-  <section id="inputs">
-    <h2>Input Parameters</h2>
-    
-    <h3>Heat Source (Die) Parameters</h3>
-    <table class="param-table">
-      <tr>
-        <th>Parameter</th>
-        <th>Units</th>
-        <th>Description</th>
-        <th>Typical Range</th>
-      </tr>
-      <tr>
-        <td>Length / Width</td>
-        <td>mm</td>
-        <td>Die footprint dimensions.</td>
-        <td>1-20 mm</td>
-      </tr>
-      <tr>
-        <td># of dies</td>
-        <td>-</td>
-        <td>Number of identical, parallel heat sources.</td>
-        <td>1-16</td>
-      </tr>
-      <tr>
-        <td>Power per die</td>
-        <td>W</td>
-        <td>The power dissipated by each individual die. Used to calculate temperature rise (&Delta;T).</td>
-        <td>1-500 W</td>
-      </tr>
-      <tr>
-        <td>Spacing X</td>
-        <td>mm</td>
-        <td>Horizontal center-to-center distance between dies for predefined layouts.</td>
-        <td>0.5-20 mm</td>
-      </tr>
-      <tr>
-        <td>Spacing Y</td>
-        <td>mm</td>
-        <td>Vertical center-to-center distance between dies for predefined layouts.</td>
-        <td>0.5-20 mm</td>
-      </tr>
-       <tr>
-        <td>Layout</td>
-        <td>-</td>
-        <td>Arrangement of dies. 'Line', '2-Lines', and 'Quincunx' use the Spacing X/Y fields. 'Custom' uses the Coords field.</td>
-        <td>-</td>
-      </tr>
-       <tr>
-        <td>Coords</td>
-        <td>-</td>
-        <td>For 'Custom' layout, specify semicolon-separated coordinates for each die center (e.g., `0,0; 10.5,0; 0,10.5`).</td>
-        <td>-</td>
-      </tr>
-    </table>
+## Basic Usage
 
-    <h3>Material Stack-Up Parameters</h3>
-    <p>Build your thermal stack from the heat source down to the cooler, layer by layer.</p>
-    
-    <table class="param-table">
-       <tr>
-        <th>Parameter</th>
-        <th>Units</th>
-        <th>Description</th>
-        <th>Typical Values</th>
-      </tr>
-      <tr>
-        <td>Material</td>
-        <td>-</td>
-        <td>Descriptive name for reference.</td>
-        <td>Die, Solder, Substrate, TIM, etc.</td>
-      </tr>
-      <tr>
-        <td>t</td>
-        <td>&micro;m</td>
-        <td>Layer thickness.</td>
-        <td>10-2000 &micro;m</td>
-      </tr>
-      <tr>
-        <td>k<sub>xy</sub></td>
-        <td>W/(m·K)</td>
-        <td>In-plane (X and Y directions) thermal conductivity.</td>
-        <td>0.1-400</td>
-      </tr>
-      <tr>
-        <td>k<sub>z</sub></td>
-        <td>W/(m·K)</td>
-        <td>Through-thickness (Z direction) thermal conductivity.</td>
-        <td>0.1-400</td>
-      </tr>
-    </table>
-    
-    <h3>Cooler/Base & Monte Carlo</h3>
-    <p>Use these inputs to specify the cooler resistance (convection coefficient) and to configure uncertainty parameters. Detailed usage is covered in the Monte Carlo section below.</p>
-  </section>
+1.  **Define Heat Source:** Input the heat source dimensions (length and width), number of dies, power per die, and select a die layout (Line, 2-Lines, Quincunx, or Custom). For custom layouts, provide semicolon-separated coordinates.
+2.  **Build Stack-Up:** Add material layers sequentially from the heat source to the cooler. For each layer, specify its material name, thickness (µm), in-plane thermal conductivity (kxy in W/(m·K)), and through-plane thermal conductivity (kz in W/(m·K)).
+3.  **Configure Cooling:** Choose your cooling method: `None`, `Direct Rth` (specify a fixed thermal resistance), or `Convection` (specify a convection coefficient).
+4.  **Calculate:** Click the "Calculate" button to perform the thermal analysis.
+5.  **Analyze Results:** Review the primary outputs (ΔT per die, total stack Rth), detailed visualizations (X/Y axis thermal dissipation, top view layout), and the summary table which breaks down Rth contributions, cumulative Rth, and sensitivity indices for each layer.
+6.  **Explore Advanced Features:** Use the "Monte Carlo" button to run uncertainty quantification or "Run Sweep Analysis" to plot the effect of varying a single parameter.
+7.  **Save/Load:** Utilize the "💾 Save Stack" and "📂 Load Stack" buttons to save and retrieve your current stack-up configurations.
 
-  <section id="usability">
-    <h2>Usability Features</h2>
-    <ul>
-      <li><strong>💾 Save Stack:</strong> Saves all current input values (die, cooler, layers, etc.) to your browser's local storage.</li>
-      <li><strong>📂 Load Stack:</strong> Restores the last saved configuration. Useful for resuming work or comparing design variations.</li>
-      <li><strong>README:</strong> Shows or hides this tutorial panel.</li>
-    </ul>
-  </section>
+## Calculation Approach
 
-  <section id="results">
-    <h2>Understanding Results</h2>
-    
-    <h3>Primary Outputs</h3>
-    <ul>
-      <li><strong>&Delta;T / die:</strong> The primary result, representing the temperature rise from ambient to the die. This is the key performance metric. For multi-die layouts, the tool reports both the **maximum** &Delta;T (for the hottest die) and the **average** &Delta;T across all dies.</li>
-      <li><strong>Total stack R<sub>th</sub>:</strong> The equivalent thermal resistance for all dies and the cooler combined, presented in &deg;C/W.</li>
-    </ul>
+The solver employs a detailed layer-by-layer approach:
 
-    <h3>Results Visualizations</h3>
-    <p>The visualizations provide an intuitive understanding of how heat moves through the stack.</p>
-    <ul>
-      <li><strong>X/Y Axis Thermal Dissipation:</strong> These two side-view diagrams show the heat spreading "cone" through the material layers along the X and Y axes, respectively. The gradient color represents the thermal path, and the expansion of the cone shows the effectiveness of heat spreading.</li>
-      <li><strong>Top View Layout:</strong> This diagram shows the die layout from above. The inner (red) rectangles are the actual die footprints. The outer (blue) rectangles represent the final area the heat has spread to at the bottom of the stack, illustrating how the individual thermal zones expand and potentially interact.</li>
-    </ul>
+*   **Slice-based Calculation:** Each material layer is divided into 1 µm slices. The vertical resistance is calculated for each slice, and the heat-spreading footprint is updated based on angles derived from the conductivity ratios.
+*   **Anisotropic Spreading:** The model accounts for anisotropic heat spreading by tracking widths in the X and Y directions separately.
+*   **Cumulative Resistance:** Resistance is accumulated slice by slice. The calculation aborts if the cumulative Rth exceeds `RTH_LIMIT` (100 °C/W) to prevent runaway values.
+*   **Cooler Model Integration:** After processing all layers, the selected cooler model (direct resistance or convection based on the final spread area) is added to determine the per-die and total stack resistance.
+*   **Lateral Coupling:** For multi-die configurations, the tool computes overlap areas between die footprints across layers to build a conductance matrix, accounting for lateral thermal coupling.
+*   **System Solution:** A matrix system is solved to obtain die temperatures, from which the maximum and average temperature rises, and overall stack resistance, are derived.
 
-    <h3>Summary Table Columns</h3>
-    <p>This table breaks down the thermal resistance (R<sub>th</sub>) contributions of each layer and the cooler.</p>
-    <table class="results-table">
-       <tr>
-        <th>Column</th>
-        <th>Description</th>
-        <th>Interpretation</th>
-      </tr>
-      <tr>
-        <td>R<sub>th</sub> (total stack)</td>
-        <td>A layer's thermal resistance, accounting for all dies in parallel.</td>
-        <td>Identifies the individual resistance contribution of each layer.</td>
-      </tr>
-      <tr>
-        <td>Cumulative R<sub>th</sub></td>
-        <td>The running total of thermal resistance through the stack.</td>
-        <td>Shows how resistance accumulates from the die to the cooler.</td>
-      </tr>
-      <tr>
-        <td>Length (Y) at bottom</td>
-        <td>The effective width of the heat path after spreading through that layer.</td>
-        <td>Measures spreading effectiveness. A larger number is better.</td>
-      </tr>
-      <tr>
-        <td>Contribution [%]</td>
-        <td>The percentage of the total stack R<sub>th</sub> (excluding the cooler) that this layer is responsible for.</td>
-        <td>Quickly identifies the biggest thermal bottlenecks in your stack-up.</td>
-      </tr>
-      <tr>
-        <td>Sensitivity Index [%]</td>
-        <td>A root-sum-square measure of how much the total R<sub>th</sub> changes in response to variations in this layer's thickness and conductivity (t, k<sub>xy</sub>, k<sub>z</sub>).</td>
-        <td>A high value means the design is very sensitive to this layer's properties, making it a critical component for process control or optimization.</td>
-      </tr>
-  </table>
-  </section>
+## Assumptions & Limitations
 
-  <section id="monte-carlo">
-    <h2>Monte Carlo Analysis</h2>
-    <p>The Monte Carlo option runs many simulations with random perturbations to layer thickness and conductivity. Use the checkbox in the control panel to enable it.</p>
-    <ol>
-      <li>Choose the number of <em>Iterations</em> and percentage uncertainties for <em>t</em> and <em>k</em>.</li>
-      <li>Click <strong>Run Monte&nbsp;Carlo</strong> to generate a distribution of total R<sub>th</sub>.</li>
-    </ol>
-    <p>The tool displays the mean, standard deviation and a histogram of the results. The most critical layer is highlighted in the summary table.</p>
-  </section>
+*   **Units:**
+    *   Heat source length and width are entered in **millimeters (mm)**.
+    *   Layer thicknesses are in **micrometers (µm)**.
+    *   Thermal conductivities (kxy, kz) are in **W/(m·K)**.
+    *   Results (Rth) are reported in **°C/W**.
+*   **Homogeneity:** Each layer is considered homogeneous.
+*   **Idealized Spreading:** Heat spreading is idealized as described in the calculation approach.
+*   **Rth Limit:** Calculations stop if cumulative Rth exceeds 100 °C/W.
 
-  <section id="parameter-sweep">
-    <h2>Parameter Sweep</h2>
-    <p>This feature varies one layer parameter over a range to show its impact on R<sub>th</sub>.</p>
-    <ol>
-      <li>Enable <em>Sweep Analysis</em> and select the target layer and parameter (t, k<sub>xy</sub>, k<sub>z</sub>).</li>
-      <li>Specify the start value, end value and the number of steps.</li>
-      <li>Run the sweep to view the line chart of R<sub>th</sub> vs. the swept value. Axes automatically scale for clarity.</li>
-    </ol>
-  </section>
+## Contributing
 
-  <section id="mathematical-models">
-    <h2>Mathematical Models</h2>
-
-    <h3>Temperature Rise (&Delta;T) Calculation</h3>
-    <p>The temperature rise of each die is obtained from the solved thermal resistance:</p>
-    <div class="math-section">
-      <p>&Delta;T<sub>die</sub> [°C] = R<sub>th, die</sub> [°C/W] &times; Power<sub>per die</sub> [W]</p>
-    </div>
-
-    <h3>Layer-by-Layer Solver</h3>
-    <p>Each material layer is sliced into 1&nbsp;µm increments. For a slice of thickness &Delta;t the vertical resistance is</p>
-    <div class="math-section">
-      <p>R<sub>slice</sub> = &Delta;t / (k<sub>z</sub> &times; A<sub>slice</sub>)</p>
-    </div>
-    <p>The spreading footprint increases after every slice according to</p>
-    <div class="math-section">
-      <p>&Delta;w = 2 &times; &Delta;t &times; &radic;(k<sub>xy</sub>/k<sub>z</sub>)</p>
-    </div>
-    <p>Widths in the X and Y directions are tracked separately for anisotropic materials. Slice resistances accumulate until the sum reaches the layer value.</p>
-
-    <h3>Lateral Coupling Between Dies</h3>
-    <p>After solving each die vertically, the tool computes overlap areas between every pair of dies to build a conductance matrix:</p>
-    <div class="math-section">
-      <p>R<sub>ij</sub> = &Sigma;<sub>layers</sub> t<sub>l</sub> / (k<sub>xy,l</sub> &times; A<sub>ij,l</sub>)</p>
-    </div>
-    <p>The matrix includes these lateral conductances plus the vertical stack conductances to each die.</p>
-
-    <h3>Cooler Boundary</h3>
-    <p>The cooler is added as either a fixed resistance or a convection term. For convection:</p>
-    <div class="math-section">
-      <p>R<sub>cool</sub> = 1 / (h<sub>conv</sub> &times; A<sub>bb</sub>)</p>
-    </div>
-    <p>A<sub>bb</sub> is the area of all die footprints at the stack bottom.</p>
-
-    <h3>Temperature Solution</h3>
-    <p>The final system [G]{T} = {P} is solved to obtain die temperatures. The largest temperature rise defines the per-die R<sub>th</sub>, while dividing by total power yields the overall stack resistance.</p>
-    </section>
-
-  <section id="best-practices">
-    <h2>Best Practices</h2>
-    
-    <h3>Design & Analysis</h3>
-    <ul>
-        <li><strong>Use Layouts to Optimize:</strong> Experiment with different 'Layout' options and the 'Spacing X' and 'Spacing Y' settings to see the impact on the maximum die temperature. Sometimes a non-obvious arrangement can improve performance.</li>
-        <li><strong>Save Iterations:</strong> Use the 'Save Stack' and 'Load Stack' features to create a baseline design, then load it and make changes to compare different material choices or geometries.</li>
-        <li><strong>Focus on Bottlenecks:</strong> Use the 'Contribution [%]' and 'Sensitivity Index [%]' columns to identify the most critical layers. Small improvements to these layers will yield the largest overall performance gains.</li>
-        <li><strong>Validate Anisotropy:</strong> For materials like composites or PCBs, ensure the k<sub>xy</sub> and k<sub>z</sub> values are correct, as the ratio between them is a primary driver of heat spreading.</li>
-    </ul>
-  </section>
-
-  <section id="troubleshooting">
-    <h2>Troubleshooting</h2>
-    
-    <h3>Common Issues</h3>
-    <table class="trouble-table">
-      <tr>
-        <td>Save/Load Not Working</td>
-        <td>Browser privacy settings blocking local storage, or storage is full.</td>
-        <td>Ensure your browser allows sites to save data. Try clearing the site data for script.google.com.</td>
-      </tr>
-      <tr>
-        <td>Max and Average &Delta;T are very different</td>
-        <td>Significant thermal crosstalk between dies.</td>
-        <td>This is expected in dense layouts. The 'max' value is your worst-case scenario. Increase die spacing (X and Y) or improve heat spreading to reduce the difference.</td>
-      </tr>
-    </table>
-  </section>
-
-  <section id="material-guide">
-    <h2>Material Properties Guide</h2>
-
-    <h3>Typical Material Properties</h3>
-    <table class="material-table">
-      <tr>
-        <th>Material</th>
-        <th>kxy [W/m·K]</th>
-        <th>kz [W/m·K]</th>
-        <th>Typical Thickness</th>
-        <th>Applications</th>
-      </tr>
-      <tr>
-        <td>Silicon</td>
-        <td>150</td>
-        <td>150</td>
-        <td>100-500 μm</td>
-        <td>Die substrate</td>
-      </tr>
-      <tr>
-        <td>Copper</td>
-        <td>400</td>
-        <td>400</td>
-        <td>10-100 μm</td>
-        <td>Heat spreader, interconnects</td>
-      </tr>
-      <tr>
-        <td>Solder (SAC305)</td>
-        <td>60</td>
-        <td>60</td>
-        <td>20-50 μm</td>
-        <td>Die attach, interconnects</td>
-      </tr>
-      <tr>
-        <td>Thermal Interface Material</td>
-        <td>1-5</td>
-        <td>1-5</td>
-        <td>10-100 μm</td>
-        <td>Gap filling</td>
-      </tr>
-      <tr>
-        <td>FR4 PCB</td>
-        <td>0.3</td>
-        <td>0.3</td>
-        <td>100-1600 μm</td>
-        <td>Circuit board</td>
-      </tr>
-      <tr>
-        <td>Aluminum Nitride</td>
-        <td>180</td>
-        <td>180</td>
-        <td>200-1000 μm</td>
-        <td>Ceramic substrate</td>
-      </tr>
-    </table>
-
-    <h3>Anisotropic Materials</h3>
-    <p>Some materials exhibit different thermal conductivities in different directions:</p>
-    <ul>
-      <li><strong>Graphite sheets:</strong> kxy = 1500, kz = 5 W/m·K</li>
-      <li><strong>Carbon fiber composites:</strong> Highly directional properties</li>
-      <li><strong>Layered ceramics:</strong> Different properties through thickness</li>
-    </ul>
-  </section>
-
-  <section id="examples">
-    <h2>Examples and Case Studies</h2>
-
-    <h3>Example 1: Single Die Power Module</h3>
-    <div class="example-box">
-      <h4>Configuration:</h4>
-      <ul>
-        <li>Die: 10mm × 10mm, 300W</li>
-        <li>Layer 1: Silicon die (100μm, k=150)</li>
-        <li>Layer 2: Solder (25μm, k=60)</li>
-        <li>Layer 3: Copper baseplate (2000μm, k=400)</li>
-        <li>Cooling: Convection, h=5000 W/m²K</li>
-      </ul>
-      <h4>Expected Results:</h4>
-      <p>ΔT ≈ 15-25°C, depending on final spread area</p>
-    </div>
-
-    <h3>Example 2: Multi-Die Processor Package</h3>
-    <div class="example-box">
-      <h4>Configuration:</h4>
-      <ul>
-        <li>4 dies: 5mm × 5mm each, 50W per die</li>
-        <li>Layout: 2×2 grid, 7mm spacing</li>
-        <li>Layer 1: Silicon (150μm, k=150)</li>
-        <li>Layer 2: TIM (50μm, k=3)</li>
-        <li>Layer 3: Heat spreader (1000μm, k=400)</li>
-      </ul>
-      <h4>Analysis Focus:</h4>
-      <p>Thermal crosstalk between dies, hotspot identification</p>
-    </div>
-  </section>
-
-  <section id="architecture">
-    <h2>Code Architecture</h2>
-    <p>The application follows a client-server architecture typical for Google Apps Script web apps:</p>
-    <ul>
-      <li><strong>Backend (<code>Code.gs</code>):</strong> Contains the server-side mathematical logic for thermal calculations, including the core solver, Monte Carlo simulation, and sensitivity analysis.</li>
-      <li><strong><code>index.html</code>:</strong> The main HTML file that defines the user interface structure and loads other HTML components.</li>
-      <li><strong><code>controls.html</code>:</strong> Contains the HTML for input controls related to heat source, cooler, and simulation settings.</li>
-      <li><strong><code>index.html</code>:</strong> The main HTML file that defines the user interface structure and loads other HTML components.</li>
-      <li><strong><code>ui.html</code>:</strong> Houses the client-side JavaScript logic for user interaction, data handling, visualization rendering, and communication with the <code>Code.gs</code> backend.</li>
-      <li><strong><code>styles.html</code>:</strong> Defines the CSS styles for the web application, ensuring a consistent and user-friendly appearance.</li>
-      <li><strong><code>Configuration (<code>appsscript.json</code>):</strong> Project manifest defining runtime configuration.</li>
-    </ul>
-    <h3>Execution Flow</h3>
-    <ol>
-      <li>User inputs parameters via the HTML interface.</li>
-      <li>Client-side code calls the server using <code>google.script.run</code>.</li>
-      <li>The backend performs calculations and returns results.</li>
-      <li>Visualizations and tables update on the page.</li>
-    </ol>
-  </section>
-
-  <section id="developer-info">
-    <h2>Developer Information</h2>
-
-    <h3>Extending the Tool</h3>
-    <p>To add features or modify existing ones:</p>
-    <ol>
-      <li>Update <code>Code.gs</code> with new calculation logic.</li>
-      <li>Modify <code>controls.html</code> or <code>index.html</code> for additional inputs.</li>
-      <li>Add client-side code in <code>ui.html</code> for new visualizations.</li>
-      <li>Test changes thoroughly within the Apps Script editor.</li>
-    </ol>
-    <h3>Best Practices for Contribution</h3>
-    <ul>
-      <li>Keep frontend and backend logic well separated.</li>
-      <li>Document new functions clearly.</li>
-      <li>Maintain backward compatibility whenever possible.</li>
-      <li>Implement robust error handling.</li>
-    </ul>
-  </section>
-
-  <section id="validation">
-    <h2>Validation and References</h2>
-
-    <h3>Model Validation</h3>
-    <p>The thermal model has been compared against analytical solutions, finite element analysis and experimental measurements.</p>
-
-    <h3>Limitations and Accuracy</h3>
-    <div class="warning-box">
-      <strong>Important:</strong> Results provide preliminary estimates. For critical applications validate with detailed simulations or measurements.
-    </div>
-
-    <h3>References</h3>
-    <ul>
-      <li>Incropera &amp; DeWitt – Heat Transfer Fundamentals</li>
-      <li>Kraus &amp; Bar-Cohen – Thermal Management of Electronics</li>
-      <li>JEDEC Standards for Thermal Characterization</li>
-    </ul>
-  </section>
-
-  <pre style="font-size: 2px; line-height: 2px; font-family: monospace; overflow: auto; background: #f0f0f0; color: #111; padding: 10px; border-radius: 5px;">
-.........................................:::...:--:...:......--........:.................................................::.:..:....:..:..:::::::::::::::::--:::::::::::::::::::::::
-.................................:-===..===+- :====: -=:.....-=..:==: ==-.:=====:.......:::.....:.:-:....:-----::..::.=-----.::.......::::--:.....:=========:.......................
-.................................=+===..=+-==.:+--+- -+-.....=+:.:==+:==- -+=:-:........-===-:.:=:==-....-===--:=-.==:--==:::==:===:.===--==-.....:--=-=-==::............::.:::.....
-.................................:++:...-+-+=.:+--+- :+- ....=+: .=-=+==- -+-:==:.......:==:--::=-==-....--==- .+::==..-+=. -==:=-=..==--=--:........=-==-=........:..:::::::::::...
-..................................++==- :+=+=.:+===-.:+====-.=+: :=:.==-- ==-:==........:+=.---:====:....-==:...=--=-..-==..-=-:===..+====-.........:+-==-=::.....::::::::::::::::..
-..................................-===-..=---..====-..-=---:.:-: :-: .--:.=====-.........=---:.:=---:....:==....----:..:=-..---===-.:=+:-==-.......:-=-======..................:::::
-..........................::.......::::...:....:::::..::.::::.....:.......::::::.........:::....:........:-:................:---::..:::..-:::::::::==========::::::------------:::::
-.....-%##############################################%%%%%%%%%############################***********##***++++++++++*+*++=========+******+****##########******#####%%%%%%%%%%%%+.:::
-.....-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%############***+*********+++++++++*********####%%%%%%#############%%%%%%%%%%%%%%+.:::
-.....:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%############****++***++++++++++++++*********#######################%%%%%%%%%%%%%+.:::
-......#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#######***##*****++++++++++++++++*+********###**##################%%%%%%%%%%%%%%*.:::
-......*@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#%####******#***+++++++=++++++*************####################%%%%%%%%%%%%%%%%*.:::
-......+@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%######********++++++++*+*************######################%%%%%%%%%%%%%%%%@*.:::
-......=@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%############***++++++***************###########%%#%%%#####%%%%%%%%%%%%%%%%%%@*.:::
-......-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#%#############**++++**************########%%##%%%%%%###%%%%%%%%%%%%%%%%%%%%@*.:::
-......:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##*++=====++*##%%%%%%%%%%%%%%%%%%%%%%###############************##**#*#########%#%##%%%%%###%%%%%%%%%%%%%%%%%%%%%@*.:::
-......:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*-::.....::.....::=**#%%%%%%%%%%%%%%%%%#%#############********#####################%%%%%%%%##%%%%%%%%%%%%%%%%%%%%%%@*.:::
-.......#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#+:.....................:-*%%%%%%%%%%%%%%#%###############***##################%%#####%%%%%%%%#%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-.......*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%+:...:..................:::=*#%%%%%%%%%%%%###################################%%%%%%%#%%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-.......=@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%=.............................=%%%%%%%%%%%%######################%########%##%%%%#%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-.......-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-...............................:=#%%%%%%%%%##################%%##%######%###%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-.......:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%- ..::--:::-::.....:...............-*%%%%%%%%###%##########%###%%%%%%%%%%%###%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-.......:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#- .::----------:...:...............:+#%%%%%%%%%%%%##%####%##%##%%%%%%%%%%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-........#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%+...:--=---------:.................:=*#%%%%%%%%%%%%%%#*#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-........*%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#:..:+**##+:-+##*+=:.................:*%%%%%%%%##%%#*+=-=*==**++*#%##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-........=%%#%%%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%: .-*+**#=::+#*+++-.................-#%%%%%%%%%%%%+-:::....::::-=#%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@*.:::
-........-%%#%%##%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#. :--===-:::-=+*+=-. ...............+%%%%%%%%#%%%%+=--:...::::--=%%##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@#::::
-........:%%#######%%#%%%#%%%%%%%%%%%%%%%%%%%%%%%%*..--::--:----:-:::-:............ .:=%%%%%%%%%%%%%#++++--:-+=---==*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@#::::
-.........########%%%%#%%%#%%%%%%%%%%%%%%%%%%%%%%%#..--=+*=*%###+++=--=:.............:+%%%%%%%%%%%%%++=+=-=:=++--==++#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@#::::
-.........*######%%%%####%%#%%%%%%%%%%%%%%%%%%%%%%%=-==+%%#***####%#===..............:*%%%%%%%%%%%%#*+++++-:=++++====#%%*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%+::::
-.........+#######%######%%%%%%%%%%%%%%%%%%%%%%%%%%%#+**#*+-----+*#+*+:  .:.... .   .-#%%%%%%%%%%%%=+=+=-:::--:===--=##=+@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@#:::::
-.........+#######%#######%%%%%%%%%%%%%%%%%%%%%%%%%%%#%%%+-=+++--+%##**:  .:......:::=%%%%%%%%%%%%%*-::.:=---:..:::-+*--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%+::::
-.........=#####%#########%%%%%%%%%%%%%%%%%%%%%%%%%%%%#%%#***##**%%%#*%*:-=+++==+#%%%%%%%%%%%%%%%%%%*-:-+=-----::--=**-#@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@%::::
-.........=#####%#########%%%%%%%%%%%%%%%%%%%%##*++%@*+*%%%%%%%%%%%#**%%%%%%%%%%%####%%%%%%%%%%%%%%%@*::-=:::-=::--=**#@%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@%::::
-.........=#########%#####%%%%#%%%%%%%%%%#***++:-::-**+++**##%###**###%%%%%%%%%%%%%%%##*#%%%%%%%%%%%%%=::---:::::-=+=*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@%::::
-.........-##############%%%%%%%%%%%%%#*+==+---.:::..=++++++++++=++%%%%%%%%%%%%%%%%%%%%#=+#%%%%%%%%%%%%+---=:::-----+%%%%%%%%%#+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@%%%%%%@%::::
-.........-###############%%%%%%%%%#*-=:-:::---::.::.:**+==+++*#+#*#%%%%%%%%%%%%%####***+=-+%%%%%%%%%%%%#*++=+++---+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@%-:::
-.........-##########%%####%%%%%%%+--::::::.:-:::.:::=*%#*==+**##%+*@%%%##%##%%%##**++==+=---*%%%%%%%%%%%#++++=-:-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@-:::
-.........-%##########%#####%%%%#=::--::.::..::::...:*-+%%#*****#%=+@%%#-+#*#*#%##+----=-=-=::+%%%%%%%%%%%#--===+#%##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@-:::
-.........-#################%%%*:.::.:::.::..::.:...:+#*##%%%##%%%=+@%%#+*##%+*%%##+-::=-:---::=%%%%%%%%%%@#*%%%####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@=.::
-.........-##################%#-.:::..:::.::..:.:...:.=#####%%%%%%=*@%%#=-*#%%%%##*+-:-=-:-:-::-=%%%%%%%%%*%%%#####%##%%%%%%%%%%%##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%@%@%%%%@%%%%%%@=.::
-.........:#**###############%*::.....::::::.......:.:.:=###%#*####%###%-:*#%%%#=*++-.+%+-::--====%@%%%%%++%%##*##%#**######%%%%%%%%%%%%%%%%%%%@%%%%%@%%%%%%%@%%%@@@@@@@@@@@@@%%@+.::
-.........:*****##########%%##-.::::....::.:.......:.....-%#*+#*+++++--*+-*%%+*%=**===%#-::-=----:=%%%%%+=**#**##%%#%###*##%%%%%%%%%%@%%%%%%%%%@%%@%@@@@%%%%%%%%@@@@@@%@@@@@@@@%@+.::
-.........:*****############%*::::.::.::...........:::-=+**+==-----==+==+*%**=##+#*+#%%+-.::--:::::-#@##*+#***#%%%%%%#####%@%%%%@%%%@%%@%%%%%%%%%@@@%%@@@%@@%@@@@%@@@@@@@@@@@@@@@*.::
-.........:*******###*#######=.::::::::...:.:....-++##++*+------=+=--+#*+*##%%#*###%%##%=.::::::::::-##***###%%%%#####**#%%%%%%%%%%##%%@@%%%%%%%%@@@@%@@@@@@%@@@@@@@@@@@@@@@@@@@@#.::
-.........:********##***####*::::::.......:.....:*=**=--=-----==--+====+**####+*%#####%+:::--:---=+++=#**##%%%#####*##**%%%%%@@@%%@%*#%%@@%@%%%%@@@@@@@@@@@@@@%@@@@@@@@@@@@@@@@@@#:::
-.........:********##******#+.:::::...:.........:+**-==-------=-=--=-:---###%#######%#*-:::-=----===-:*####%#####******#@%@@@@@@@@@@@%%@@@@@%%%%%@@%@@@@@@%@@@%@@@@@@@@@@@@@@@@@@%:::
-.........:********##*******-.:::::::.:::.......-##-===+==-=+=====:---===+#%#*###%%%#**=:::::=+++=---=*#####*#***#***#*%@%@@@@@@@@@@@%%@@@@@%%%%%%@@%@@@@@@@@@%@@@@@@@@@@@@@@@@@@%:::
-.........:#*##*************:::::.:-:..::::...::=%*:++++=---#+---=--=---++-=%#%%%%%#%%#+*+=-::-=+*#*+*###********##**##@@@@@%@@@@@@@@%%%@@@@@%%%%%%@@@@@@@@@@@%@@@@@@@@@@@@@@@@@@%-::
-.........:#####**##******#+::::::.:-:..:-=-.:::-%#-====----==-====-:-=-==-:*%@%%%@%%%*=#**+=-::--+#####**********##*#%@@@@@@@@@@@@@@%%%@@@@@@%@%%%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@-::
-.........:##########*+***+-:::::::.-=-:-==-:::::#%*-=====-------===-=--:----+%@%%%#*%+-=#*++=======*#*#***********###@@@@%@@@@@@%@@@@%@@@@@@@%%%%%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=.:
-.........-#########*++**=:::::::::::-=++====:---**+#+++--:------==+=---:----=*%@%#%%%*+*#*+++++++*+*#################%%@@@@@@@@@@%@@@%%@@@@@@%%%#%%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=.:
-.........-%#######**+***-.:::::::::::=++=--*#*++**--++=:::-------==+---::----*#@%%%%#####%*+%%%#**##*#%%#######**####%%@%@@@@@@@%%@@@%%@@@@@@@%%#%#%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+.:
-.........-%#######******=.:::::::::-----:=*%*+=-=+*::::::::---=-===+=--::-:---+%%%#%#+*+++=:+***++*##########****##*#%%%%%@@@@@@%%%@@@@@@@@@@%%%#%%#%@@@@@@@@@@@@@@@@@@@%%%@%@%@@+.:
-.........-%%%#####*******:.:::::::::::::.*%#+-=--=#-::-::-----=--=---:-----==-*%%##*+===---::+====+*######*****####*#%%%%%@@@@@@@%%@%@@@@@@%%%%%%%%%%@@@@@@@@@@@@@@@@@%%%%%%%%#+=-::
-.........-%#%#####*******:.:::::::::::::.-##*-----#+::=--=-------:::---++=*%##%%#**=-----:-::==--=+####********####**%%%%%%@@@@@%%%%%%%%%%%%@%%%%%%%%%@@@@@@@@@@@@@%@%%###%%#*+:::::
-.........-%#########**##*-.::::::::::::::::=*+---:+#==-===-----------=#%%%@@@@%#*+-::::::::::-+-:-+###*********####**%@%%%%@@@@@%##%%%%%%%%%@@%%%@@%#%%@@@@@@@@@@%%%%%#*=-=**+=---::
-.........-%###%#####**###*:::::::::::::::::.:==---=%##=====----=====*%%####***++-:::::::::::::--:=+###**********####*%@%%%%%@@%%%*#%#%%@%%%%%%@@@%%%##%%%%%@@@@@%%%%%%#+:::++++++=::
-.........-%%##%#####**####+.::::::::::::::::::::::-%%#=------==+++@#*@*==--===-:::::::::::::::::-:=#*#***********###*%%%%%%%@@%%#+*##%%%%%%%%%%%%%%%#*#%%%%%%%%%%%%###*-::-****+-:::
-.........-%###%############+:::::::::::::::::::::::*@*+=-*##+-+=*=%%*%@=:----*=:::::::-+::::::-+++*#*#************##%%%%%%%%%%%%#****%%%%%%%%%%%%%%%%#*=###%%%%%%%%##+----=***=--:::
-.........-%#%%#%############*-::::::::::::::::::::::*%%*+*+#@=+++=*@#+@%:--:-#*-::::::=%*=:-=*%%%@#*+###############%%%%%#%%%%%%###**%%%%%%%%%%%%%%%%#+=*#%%%****##*=------++-----::
-.........-%#%%#######%########*+========:::::::::::::---:::*%*-*===@*=#@-:---+#=--:-::-+####%%%%%%#*+#######%###**##%%#*#*#%%@%%####*#%@%%%%%%%%%%%%%**+:+#+=--:-==---------------::
-.........-%#%####%#######%%%%%%%%%%%%%%#-::::::::::::::::----==+*--#*+*@=:::--**-:--:---++*%%%%%%@###################**#**#%%%%###%#*#%%@%%%%%%%%%%%#*#*---:----------------------::
-.........=%%%##%%%%%%%%%%%%%%%%%%%%%%%%%=::::-----------------==*+-+%=*%+:---:-*#-::==---==-+%%%%%#################+**##**#%%%%##%%#*#%%%%%%%%%%%%%%%#%#=:------------------------::
-.........=%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%#-:---------------------=#*=+=*##:------##++**=+-==--#@%%%#########*######*+***#**#%%%%%%%%#*##%%%%%%%%#####%%##*-------------------------::
-::::::::.=%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#------------------------=*+==+*#------*##%#=##*+=+*==%@%%################+****#**#%%%%%%%%%##*#%%%%%%%%%%%%%%###=------------------------::
-::::::::.=%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#------------------------------------=*+=-*%#*%#*=+#*-#@@%###############*+********%%%%%%%%%%%##%%%%%%%%%%%%%%#%#*#%##########*****++++++---
-::::::::.-%%%%%%%%%%%%%%%%%@%%%%@@@@@@%%%=--------------------------------==----=--+*%%%#+++*=#@@%###############+*****+**#%%%%%%%%%%%%%%@%%%%%%%%%%%%%%%#%@%%%@@@@%%@@%%%%%@%%@#---
-:::::::::-@@%@@@@@@@@@@@@@@@@@@@@@@@@@@@%+-+**##*===-============--------==-=--------=*%%%%%%%%@@%##############****##****#%%%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%@@@@@@@@@@@@@@@@%#+#*=---
-:::::::::-#############%%%%%%%%%%%%%%%%%########*#***+====================--===----===+*@@@@@@@@@%#**###%%######**####**###%%%@%%%%@@@@%%%%%%%%%%%@%%@%%%@@@@@@@@@@@@@@@@@@%++++----
-:::::::::::::::::::::-----------------======================-=------------------------=====+++++++===++=+++===============++++++++=+++++++==+++++++++++++++++++++++++++++++++++=----
-::::::::::-:::-:------------------------------==-==--=------------------------------------------------------------:::::-::::::::::::::::::::::::::::::::::::------------------------
-:::::::--------------------------------========================---==----------------------------------------------------------------------------------------------------------------
-</pre>
-</div>
-
-<style>
-.readme-content {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 20px;
-  line-height: 1.6;
-}
-
-.readme-content h1 {
-  text-align: center;
-}
-
-.readme-content {
-  background: #f0f0f0;
-  color: #111;
-}
-
-.toc {
-  background: #dfe9f2;
-  border-left: 4px solid #007acc;
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 30px;
-}
-
-
-.toc a {
-  color: #007acc;
-  text-decoration: none;
-}
-
-
-.toc a:hover {
-  text-decoration: underline;
-}
-
-.math-section {
-  background: #eaeaea;
-  padding: 10px;
-  margin: 15px 0;
-  border-left: 3px solid #006bb3;
-  border-radius: 4px;
-}
-
-
-.math-section p {
-  font-family: 'Courier New', monospace;
-}
-
-.material-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 20px 0;
-}
-.material-table th,
-.material-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-.material-table th {
-  background-color: #f2f2f2;
-  font-weight: bold;
-}
-
-.example-box {
-  background: #f0f8ff;
-  padding: 20px;
-  border-radius: 8px;
-  margin: 15px 0;
-  border: 1px solid #b3d9ff;
-}
-
-.warning-box {
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  padding: 15px;
-  border-radius: 5px;
-  margin: 15px 0;
-}
-
-@media (max-width: 768px) {
-  .readme-content {
-    padding: 15px;
-  }
-}
-</style>
+Contributions are welcome! If you have improvements or bug fixes, please fork this repository and submit a pull request. You can manually test your updates using the "Run" button in the Google Apps Script editor. If you add unit tests, please ensure they pass before submitting your PR.
